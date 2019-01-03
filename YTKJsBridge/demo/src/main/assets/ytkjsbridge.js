@@ -21,3 +21,10 @@ function showMessage2(args){
     alert(message)
     return 666
 }
+
+function testSync(args) {
+    var json=JSON.parse(args)
+    var message=json[0]+" "+json[1]
+    alert(message)
+    return "suspended"
+}

@@ -5,21 +5,18 @@ import android.os.Looper
 import android.support.annotation.Keep
 import android.webkit.JavascriptInterface
 import android.webkit.WebView
-import com.fenbi.android.annotation.YTKJsInterface
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.lang.IllegalArgumentException
-import java.lang.NullPointerException
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
 import java.util.*
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
+import kotlin.coroutines.resume
 
 /**
  * Created by yangjw on 2019/1/2.
@@ -62,8 +59,8 @@ fun WebView.initYTK() {
 /**
  * asynchronous call javascript function [methodName] with [args] as params.
  */
-fun <T : Any> WebView.call(methodName: String, vararg args: Any?, callback: JsCallback<T>?) {
-    var jsonArray = JSONArray(args[0])
+fun <T> WebView.call(methodName: String, vararg args: Any?, callback: JsCallback<T>?) {
+    val jsonArray = JSONArray(args)
     val callInfo = CallInfo(methodName, jsonArray.toString(), callId.getAndIncrement())
     if (callback != null) {
         callMap[callInfo.callId] = callback as JsCallback<Any>
@@ -74,8 +71,8 @@ fun <T : Any> WebView.call(methodName: String, vararg args: Any?, callback: JsCa
 /**
  * function type version of asynchronous [call]
  */
-fun <T : Any> WebView.call(methodName: String, vararg arg: Any?, callback: (T?) -> Unit) {
-    call(methodName, arg, callback = object : JsCallback<T> {
+fun <T> WebView.call(methodName: String, vararg arg: Any?, callback: (T?) -> Unit) {
+    call(methodName, *arg, callback = object : JsCallback<T> {
         override fun onReceiveValue(ret: T?) {
             callback(ret)
         }
@@ -83,35 +80,48 @@ fun <T : Any> WebView.call(methodName: String, vararg arg: Any?, callback: (T?) 
 }
 
 /**
- * Synchronous call javascript function [methodName] with [args] as params.
+ * Suspended call javascript function [methodName] with [args] as params.
  */
-suspend fun <T> WebView.call(methodName: String, vararg args: Any?): T? {
-    //todo 实现同步调用
-    return null
-}
+suspend fun <T> WebView.call(methodName: String, vararg args: Any?): T? =
+    suspendCancellableCoroutine { cont ->
+        call<T>(methodName, *args) { ret ->
+            cont.resume(ret)
+        }
+    }
 
 inline fun <reified T> WebView.getJsInterface(): T {
     val clazz = T::class.java
-    val proxy = InvocationHandler { proxy, method, args ->
+    val proxy = InvocationHandler { _, method, args ->
         val paramTypes = method.parameterTypes
-        val isAsync = paramTypes.isNotEmpty() && paramTypes.last() == JsCallback::class.java
-        val argList = mutableListOf<Any>()
-        var callback: JsCallback<Any>? = null
-        args?.asSequence()
-            ?.map { it ?: "" }
-            ?.filterIndexed { index, _ -> !isAsync || index < args.size - 1 }
-            ?.forEach { argList.add(it) }
-        if (isAsync) {
-            if (args.lastOrNull() != null) {
-                callback = args.last() as JsCallback<Any>
-            }
-            return@InvocationHandler call(method.name, argList.toTypedArray(), callback = callback)
-        } else {
-            //todo 调用同步接口
-            0
+        val isAsync = paramTypes.isNotEmpty() && JsCallback::class.java.isAssignableFrom(paramTypes.last())
+        val lastArg = args?.lastOrNull()
+        return@InvocationHandler when {
+            isAsync -> callWithCallback(method, args)
+            lastArg is Continuation<*> -> callSuspended<T>(method, args)
+            else -> call<T>(method.name, *args.orEmpty()) {}
         }
     }
     return Proxy.newProxyInstance(proxy.javaClass.classLoader, arrayOf(clazz), proxy) as T
+}
+
+fun WebView.callWithCallback(method: Method, args: Array<Any?>?) {
+    val argsButLast = if (args?.isNotEmpty() == true) {
+        args.take(args.size - 1)
+    } else {
+        emptyList()
+    }
+    val callback = args?.lastOrNull() as? JsCallback<Any>
+    call(method.name, *argsButLast.toTypedArray(), callback = callback)
+}
+
+fun <T> WebView.callSuspended(method: Method, args: Array<Any?>): Any {
+    val lastArg = args.last()
+    val cont = lastArg as Continuation<T?>
+    val argsButLast = args.take(args.size - 1)
+    call<T>(method.name, *argsButLast.toTypedArray()) { ret ->
+        cont.resume(ret)
+    }
+    return COROUTINE_SUSPENDED
 }
 
 private fun WebView.callInner(callInfo: CallInfo) {

@@ -31,4 +31,13 @@
             android:text="native call js with multi params"
             android:textAllCaps="false" />
 
+    <Button
+            android:id="@+id/call_js_bt_3"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/call_js_bt_2"
+            android:layout_centerHorizontal="true"
+            android:text="suspended call js"
+            android:textAllCaps="false"/>
+
 </RelativeLayout>

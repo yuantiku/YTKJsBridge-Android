@@ -8,9 +8,10 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.Toast
 import com.fenbi.android.ytkjsbridge.JsCallback
-import com.fenbi.android.ytkjsbridge.call
 import com.fenbi.android.ytkjsbridge.getJsInterface
 import com.fenbi.android.ytkjsbridge.initYTK
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
 
 
 class MainActivity : AppCompatActivity() {
@@ -18,7 +19,7 @@ class MainActivity : AppCompatActivity() {
     private val mWebView by lazy { findViewById<WebView>(R.id.web_view) }
     private val mCallJsBt by lazy { findViewById<Button>(R.id.call_js_bt) }
     private val mCallJsBt2 by lazy { findViewById<Button>(R.id.call_js_bt_2) }
-
+    private val mCallJsBt3 by lazy { findViewById<Button>(R.id.call_js_bt_3) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -45,6 +46,12 @@ class MainActivity : AppCompatActivity() {
                     Toast.makeText(this@MainActivity, "js call return value $ret", Toast.LENGTH_SHORT).show()
                 }
             })
+        }
+        mCallJsBt3.setOnClickListener {
+            GlobalScope.launch {
+                val ret = jsInterface.testSync("suspend call ", 111)
+                Toast.makeText(this@MainActivity, ret, Toast.LENGTH_SHORT).show()
+            }
         }
     }
 }
