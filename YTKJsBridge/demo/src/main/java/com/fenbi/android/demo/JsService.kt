@@ -9,5 +9,7 @@ import com.fenbi.android.ytkjsbridge.JsCallback
 @YTKJsInterface
 interface JsService {
 
-    fun test(str:String,callback:JsCallback<Int>)
+    fun showMessage(str: String?, callback: JsCallback<Int>?)
+
+    fun showMessage2(str1: String?, str2: String?, int1: Int?, callback: JsCallback<Int>?)
 }

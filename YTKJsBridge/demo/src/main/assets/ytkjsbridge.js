@@ -1,7 +1,7 @@
 function handleNativeCall(call){
     var method=call.methodName
-    var param=call.args
-    var result=window[method](param)
+    var args=call.args
+    var result=window[method](args)
     var json={
        "callId":call.callId,
        "ret":result
@@ -9,7 +9,15 @@ function handleNativeCall(call){
     window.YTKJsBridge.makeCallback(JSON.stringify(json))
 }
 
-function test(message){
-    alert(message)
+function showMessage(args){
+    var json=JSON.parse(args)
+    alert(json[0])
     return 233
+}
+
+function showMessage2(args){
+    var json=JSON.parse(args)
+    var message=json[0]+" "+json[1]+" "+json[2]
+    alert(message)
+    return 666
 }

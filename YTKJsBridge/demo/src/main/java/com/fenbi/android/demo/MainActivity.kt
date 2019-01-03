@@ -8,6 +8,7 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.Toast
 import com.fenbi.android.ytkjsbridge.JsCallback
+import com.fenbi.android.ytkjsbridge.call
 import com.fenbi.android.ytkjsbridge.getJsInterface
 import com.fenbi.android.ytkjsbridge.initYTK
 
@@ -16,26 +17,33 @@ class MainActivity : AppCompatActivity() {
 
     private val mWebView by lazy { findViewById<WebView>(R.id.web_view) }
     private val mCallJsBt by lazy { findViewById<Button>(R.id.call_js_bt) }
+    private val mCallJsBt2 by lazy { findViewById<Button>(R.id.call_js_bt_2) }
 
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
 
-        with(mWebView){
+        with(mWebView) {
             initYTK()
-            webChromeClient= WebChromeClient()
-            webViewClient= WebViewClient()
+            webChromeClient = WebChromeClient()
+            webViewClient = WebViewClient()
             loadUrl("file:///android_asset/test-native-call-js.html")
         }
 
+        val jsInterface = mWebView.getJsInterface<JsService>()
         mCallJsBt.setOnClickListener {
-            val jsInterface=mWebView.getJsInterface<JsService>()
-            jsInterface.test("hello world",object:JsCallback<Int>{
+            jsInterface.showMessage("hello world", object : JsCallback<Int> {
                 override fun onReceiveValue(ret: Int?) {
-                    Toast.makeText(this@MainActivity,"js call return value $ret", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "js call return value $ret", Toast.LENGTH_SHORT).show()
                 }
-
+            })
+        }
+        mCallJsBt2.setOnClickListener {
+            jsInterface.showMessage2("hello", "world", 2019, object : JsCallback<Int> {
+                override fun onReceiveValue(ret: Int?) {
+                    Toast.makeText(this@MainActivity, "js call return value $ret", Toast.LENGTH_SHORT).show()
+                }
             })
         }
     }
