@@ -31,6 +31,7 @@ class YTKJsBridge {
     private val callId by lazy { AtomicInteger() }
     private val callMap by lazy { mutableMapOf<Int, JsCallback<Any>?>() }
     private val interfaceMap by lazy { mutableMapOf<String, Any>() }
+    private val methodMap by lazy { mutableMapOf<String, Any>() }
     private val handler = Handler(Looper.getMainLooper())
 
     var jsEvaluator: (script: String) -> Unit = {}
@@ -79,6 +80,7 @@ class YTKJsBridge {
             .forEach {
                 val prefix = if (namespace.isNotEmpty()) "$namespace." else namespace
                 interfaceMap[prefix + it.name] = obj
+                methodMap[it.name] = obj
             }
     }
 
@@ -170,7 +172,8 @@ class YTKJsBridge {
             jsonObject.put("ret", "")
             jsonObject.put("message", "")
             jsonObject.put("code", -1)
-            val obj = interfaceMap[namespace]
+
+            val obj = if (namespace.contains(".")) interfaceMap[namespace] else methodMap[namespace]
             val index = namespace.indexOfLast { it == '.' }
             val methodName = namespace.substring(if (index < 0) 0 else index + 1)
             if (obj == null) {
@@ -179,7 +182,15 @@ class YTKJsBridge {
                 return jsonObject.toString()
             }
             var isAsync = false
+            var isLambda = false
             var method: Method? = null
+            try {
+                method = obj.javaClass.getMethod(methodName, String::class.java, Function1::class.java)
+                isAsync = true
+                isLambda = true
+            } catch (e: Exception) {
+
+            }
             try {
                 method = obj.javaClass.getMethod(methodName, String::class.java, JsCallback::class.java)
                 isAsync = true
@@ -198,21 +209,35 @@ class YTKJsBridge {
                 jsonObject.put("message", "native method:$namespace not found.")
                 return jsonObject.toString()
             }
-            if (isAsync) {
-                method.invoke(obj, param, object : JsCallback<Any> {
-                    override fun onReceiveValue(ret: Any?) {
+            when {
+                isLambda -> {
+                    val callback = { ret: Any ->
                         jsonObject.put("ret", ret)
                         jsonObject.put("code", 0)
                         jsonObject.put("callId", callId)
                         makeJsCallback(jsonObject)
                     }
-                })
-                jsonObject.put("code", 0)
-                return jsonObject.toString()
-            } else {
-                jsonObject.put("ret", method.invoke(obj, param))
-                jsonObject.put("code", 0)
-                return jsonObject.toString()
+                    method.invoke(obj, param, callback)
+                    jsonObject.put("code", 0)
+                    return jsonObject.toString()
+                }
+                isAsync -> {
+                    method.invoke(obj, param, object : JsCallback<Any> {
+                        override fun onReceiveValue(ret: Any?) {
+                            jsonObject.put("ret", ret)
+                            jsonObject.put("code", 0)
+                            jsonObject.put("callId", callId)
+                            makeJsCallback(jsonObject)
+                        }
+                    })
+                    jsonObject.put("code", 0)
+                    return jsonObject.toString()
+                }
+                else -> {
+                    jsonObject.put("ret", method.invoke(obj, param))
+                    jsonObject.put("code", 0)
+                    return jsonObject.toString()
+                }
             }
         } catch (e: JSONException) {
             try {

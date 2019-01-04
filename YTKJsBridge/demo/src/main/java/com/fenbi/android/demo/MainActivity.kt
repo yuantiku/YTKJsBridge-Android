@@ -53,26 +53,44 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, ret, Toast.LENGTH_SHORT).show()
             }
         }
-
         mWebView.addYTKJavascriptInterface(object {
             @JavascriptInterface
             fun toastSync(msg: String?): Int {
                 runOnUiThread {
-                    Toast.makeText(this@MainActivity, "synchronous call with param: $msg", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "toastSync call with param: $msg", Toast.LENGTH_SHORT).show()
                 }
                 return 666
             }
-        }, "com.fenbi.android")
 
-        mWebView.addYTKJavascriptInterface(object {
             @JavascriptInterface
             fun toastAsync(msg: String?, callback: JsCallback<Int>): Int {
                 runOnUiThread {
-                    Toast.makeText(this@MainActivity, "asynchronous call with param: $msg", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "toastAsync call with param: $msg", Toast.LENGTH_SHORT).show()
                 }
                 callback.onReceiveValue(233)
                 return 0
             }
         })
+        mWebView.addYTKJavascriptInterface(object {
+            @JavascriptInterface
+            fun toastSync(msg: String?): Int {
+                runOnUiThread {
+                    Toast.makeText(
+                        this@MainActivity,
+                        "com.fenbi.android.toastSync call with param: $msg",
+                        Toast.LENGTH_SHORT
+                    ).show()
+                }
+                return 666
+            }
+
+            @JavascriptInterface
+            fun toast(msg: String?, callback: (ret: Int) -> Unit) {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "toast call with param: $msg", Toast.LENGTH_SHORT).show()
+                }
+                callback(123)
+            }
+        }, "com.fenbi.android")
     }
 }

@@ -41,7 +41,7 @@ function testSync(args) {
 
 function callNativeSync(param){
     var json={
-        "methodName":"com.fenbi.android.toastSync",
+        "methodName":"toastSync",
         "param":param,
         "callId":-1
     }
@@ -52,7 +52,7 @@ function callNativeSync(param){
 
 function callNativeAsync(param,f){
       var json={
-           "methodName":"toastAsync",
+           "methodName":"toast",
            "param":param,
            "callId":1
        }
