@@ -9,9 +9,8 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.Toast
 import com.fenbi.android.ytkjsbridge.JsCallback
+import com.fenbi.android.ytkjsbridge.addYTKJavascriptInterface
 import com.fenbi.android.ytkjsbridge.getJsInterface
-import com.fenbi.android.ytkjsbridge.initYTK
-import com.fenbi.android.ytkjsbridge.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -28,7 +27,6 @@ class MainActivity : AppCompatActivity() {
         setContentView(R.layout.activity_main)
 
         with(mWebView) {
-            initYTK()
             webChromeClient = WebChromeClient()
             webViewClient = WebViewClient()
             loadUrl("file:///android_asset/test-native-call-js.html")
@@ -76,10 +74,5 @@ class MainActivity : AppCompatActivity() {
                 return 0
             }
         })
-    }
-
-    override fun onDestroy() {
-        super.onDestroy()
-        mWebView.clearYTK()
     }
 }
