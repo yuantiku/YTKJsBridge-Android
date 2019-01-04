@@ -9,39 +9,56 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.lang.IllegalStateException
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
-import java.util.*
 import java.util.concurrent.atomic.AtomicInteger
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resume
+import kotlin.reflect.full.findAnnotation
+import kotlin.reflect.full.functions
 
 /**
  * Created by yangjw on 2019/1/2.
  */
 const val BRIDGE_NAME = "YTKJsBridge"
 
+private const val CALL_MAP_TAG_KEY = -10001
+
+private const val INTERFACE_MAP_TAG_KEY = CALL_MAP_TAG_KEY + 1
+
 private val WebView.callId by lazy { AtomicInteger() }
 
-private val WebView.callMap by lazy { HashMap<Int, JsCallback<Any>?>() }
+private val WebView.callMap: HashMap<Int, JsCallback<Any>?>
+    get() {
+        val map = getTag(CALL_MAP_TAG_KEY)
+            ?: throw IllegalStateException("you must call WebView.initYTK() before using YTKJsBridge")
+        return map as HashMap<Int, JsCallback<Any>?>
+    }
 
-private val WebView.interfaceMap by lazy { HashMap<String, Any>() }
+private val WebView.interfaceMap: HashMap<String, Any>
+    get() {
+        val map = getTag(INTERFACE_MAP_TAG_KEY)
+            ?: throw IllegalStateException("you must call WebView.initYTK() before using YTKJsBridge")
+        return map as HashMap<String, Any>
+    }
+
 
 /**
  * do init work before using YTKJsBridge on a WebView.
  */
 @SuppressLint("JavascriptInterface")
 fun WebView.initYTK() {
-
     settings.javaScriptEnabled = true
-    addJavascriptInterface(object : Any() {
+    setTag(CALL_MAP_TAG_KEY, HashMap<String, Any>())
+    setTag(INTERFACE_MAP_TAG_KEY, HashMap<String, Any>())
+    addJavascriptInterface(@Keep object : Any() {
 
         /**
          * to get return value from javascript call.
          */
-        @Keep
         @JavascriptInterface
         fun makeCallback(jsonStr: String?) {
             jsonStr?.let {
@@ -59,7 +76,6 @@ fun WebView.initYTK() {
         /**
          * pass all call messages from javascript.
          */
-        @Keep
         @JavascriptInterface
         fun callNative(jsonStr: String?): String? {
             jsonStr?.let {
@@ -72,14 +88,19 @@ fun WebView.initYTK() {
                 } catch (e: JSONException) {
 
                 }
-                return null
             }
+            return null
         }
     }, BRIDGE_NAME)
 }
 
 fun WebView.addYTKJavascriptInterface(obj: Any, namespace: String = "") {
-    interfaceMap[namespace] = obj
+    obj::class.functions
+        .filter { it.findAnnotation<JavascriptInterface>() != null }
+        .forEach {
+            val prefix = if (namespace.isNotEmpty()) "$namespace." else namespace
+            interfaceMap[prefix + it.name] = obj
+        }
 }
 
 /**
@@ -171,9 +192,9 @@ private fun WebView.dispatchJsCall(namespace: String, param: String?, callId: In
         jsonObject.put("ret", "")
         jsonObject.put("message", "")
         jsonObject.put("code", -1)
-        val obj = searchInterface(namespace)
+        val obj = interfaceMap[namespace]
         val index = namespace.indexOfLast { it == '.' }
-        val methodName = namespace.substring(if (index < 0) 0 else index)
+        val methodName = namespace.substring(if (index < 0) 0 else index + 1)
         if (obj == null) {
             //log
             jsonObject.put("message", "native interface:$namespace not found.")
@@ -182,14 +203,14 @@ private fun WebView.dispatchJsCall(namespace: String, param: String?, callId: In
         var isAsync = false
         var method: Method? = null
         try {
-            method = obj.javaClass.getDeclaredMethod(methodName, String::class.java, JsCallback::class.java)
+            method = obj.javaClass.getMethod(methodName, String::class.java, JsCallback::class.java)
             isAsync = true
         } catch (e: Exception) {
 
         }
         if (method == null) {
             try {
-                method = obj.javaClass.getDeclaredMethod(methodName, String::class.java)
+                method = obj.javaClass.getMethod(methodName, String::class.java)
             } catch (e: Exception) {
 
             }
@@ -225,24 +246,12 @@ private fun WebView.dispatchJsCall(namespace: String, param: String?, callId: In
     return jsonObject.toString()
 }
 
-private fun WebView.searchInterface(namespace: String): Any? {
-    val index = namespace.indexOfLast { it == '.' }
-    val prefixName = if (index > 0) namespace.substring(0, index) else ""
-    return interfaceMap[prefixName]
-}
-
 
 private fun WebView.dispatchJsCallback(callId: Int, ret: Any?) {
     uiThread {
         callMap[callId]?.onReceiveValue(ret)
         callMap.remove(callId)
     }
-}
-
-fun WebView.clearYTK() {
-    //log
-    callId.set(0)
-    callMap.clear()
 }
 
 fun WebView.uiThread(call: () -> Unit) {
@@ -253,6 +262,11 @@ fun WebView.uiThread(call: () -> Unit) {
     }
 }
 
+fun WebView.clearYTK() {
+    setTag(CALL_MAP_TAG_KEY, null)
+    setTag(INTERFACE_MAP_TAG_KEY, null)
+    removeJavascriptInterface(BRIDGE_NAME)
+}
 
 private class CallInfo(val methodName: String, val args: String?, val callId: Int) {
 

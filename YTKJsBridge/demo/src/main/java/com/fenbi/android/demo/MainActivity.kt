@@ -2,6 +2,7 @@ package com.fenbi.android.demo
 
 import android.os.Bundle
 import android.support.v7.app.AppCompatActivity
+import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebView
 import android.webkit.WebViewClient
@@ -56,13 +57,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         mWebView.addYTKJavascriptInterface(object {
+            @JavascriptInterface
             fun toastSync(msg: String?): Int {
                 runOnUiThread {
                     Toast.makeText(this@MainActivity, "synchronous call with param: $msg", Toast.LENGTH_SHORT).show()
                 }
                 return 666
             }
+        }, "com.fenbi.android")
 
+        mWebView.addYTKJavascriptInterface(object {
+            @JavascriptInterface
             fun toastAsync(msg: String?, callback: JsCallback<Int>): Int {
                 runOnUiThread {
                     Toast.makeText(this@MainActivity, "asynchronous call with param: $msg", Toast.LENGTH_SHORT).show()
@@ -71,5 +76,10 @@ class MainActivity : AppCompatActivity() {
                 return 0
             }
         })
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        mWebView.clearYTK()
     }
 }

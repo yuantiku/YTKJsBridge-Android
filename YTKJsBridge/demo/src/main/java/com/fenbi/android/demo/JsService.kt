@@ -6,7 +6,6 @@ import com.fenbi.android.ytkjsbridge.JsCallback
 /**
  * Created by yangjw on 2019/1/2.
  */
-@YTKJsInterface
 interface JsService {
 
     fun showMessage(str: String?, callback: JsCallback<Int>?)
