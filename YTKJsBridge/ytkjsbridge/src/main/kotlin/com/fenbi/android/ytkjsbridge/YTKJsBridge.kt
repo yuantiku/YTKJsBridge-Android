@@ -27,6 +27,8 @@ private val WebView.callId by lazy { AtomicInteger() }
 
 private val WebView.callMap by lazy { HashMap<Int, JsCallback<Any>?>() }
 
+private val WebView.interfaceMap by lazy { HashMap<String, Any>() }
+
 /**
  * do init work before using YTKJsBridge on a WebView.
  */
@@ -53,7 +55,31 @@ fun WebView.initYTK() {
                 }
             }
         }
+
+        /**
+         * pass all call messages from javascript.
+         */
+        @Keep
+        @JavascriptInterface
+        fun callNative(jsonStr: String?): String? {
+            jsonStr?.let {
+                try {
+                    val jsonObject = JSONObject(jsonStr)
+                    val methodName = jsonObject.optString("methodName")
+                    val param = jsonObject.optString("param")
+                    val callId = jsonObject.optInt("callId")
+                    return dispatchJsCall(methodName, param, callId)
+                } catch (e: JSONException) {
+
+                }
+                return null
+            }
+        }
     }, BRIDGE_NAME)
+}
+
+fun WebView.addYTKJavascriptInterface(obj: Any, namespace: String = "") {
+    interfaceMap[namespace] = obj
 }
 
 /**
@@ -125,12 +151,84 @@ fun <T> WebView.callSuspended(method: Method, args: Array<Any?>): Any {
 }
 
 private fun WebView.callInner(callInfo: CallInfo) {
-    //todo 前端提供一个接口，本地通过该接口将调用信息通过json格式传给前端
-    //evaluatejavascript() or loadUrl()
-    val script = "window.handleNativeCall($callInfo)"     //暂定
+    val script = "window.dispatchNativeCall($callInfo)"
     uiThread {
         evaluateJavascript(script, null)
     }
+}
+
+private fun WebView.makeJsCallback(ret: JSONObject) {
+    val script = "window.dispatchCallbackFromNative($ret)"
+    uiThread {
+        evaluateJavascript(script, null)
+    }
+}
+
+
+private fun WebView.dispatchJsCall(namespace: String, param: String?, callId: Int): String {
+    val jsonObject = JSONObject()
+    try {
+        jsonObject.put("ret", "")
+        jsonObject.put("message", "")
+        jsonObject.put("code", -1)
+        val obj = searchInterface(namespace)
+        val index = namespace.indexOfLast { it == '.' }
+        val methodName = namespace.substring(if (index < 0) 0 else index)
+        if (obj == null) {
+            //log
+            jsonObject.put("message", "native interface:$namespace not found.")
+            return jsonObject.toString()
+        }
+        var isAsync = false
+        var method: Method? = null
+        try {
+            method = obj.javaClass.getDeclaredMethod(methodName, String::class.java, JsCallback::class.java)
+            isAsync = true
+        } catch (e: Exception) {
+
+        }
+        if (method == null) {
+            try {
+                method = obj.javaClass.getDeclaredMethod(methodName, String::class.java)
+            } catch (e: Exception) {
+
+            }
+        }
+        if (method == null) {
+            //log
+            jsonObject.put("message", "native method:$namespace not found.")
+            return jsonObject.toString()
+        }
+        if (isAsync) {
+            method.invoke(obj, param, object : JsCallback<Any> {
+                override fun onReceiveValue(ret: Any?) {
+                    jsonObject.put("ret", ret)
+                    jsonObject.put("code", 0)
+                    jsonObject.put("callId", callId)
+                    makeJsCallback(jsonObject)
+                }
+            })
+            jsonObject.put("code", 0)
+            return jsonObject.toString()
+        } else {
+            jsonObject.put("ret", method.invoke(obj, param))
+            jsonObject.put("code", 0)
+            return jsonObject.toString()
+        }
+    } catch (e: JSONException) {
+        try {
+            jsonObject.put("message", "native occurs JSONException:$e.")
+        } catch (e: JSONException) {
+
+        }
+    }
+    return jsonObject.toString()
+}
+
+private fun WebView.searchInterface(namespace: String): Any? {
+    val index = namespace.indexOfLast { it == '.' }
+    val prefixName = if (index > 0) namespace.substring(0, index) else ""
+    return interfaceMap[prefixName]
 }
 
 

@@ -1,11 +1,22 @@
 <html>
-    <head>
-        <title> Test native call js</title>
-        <script src="./ytkjsbridge.js"></script>
-    </head>
+<head>
+    <title> Test YTKJsBridge</title>
+    <script src="./ytkjsbridge.js"></script>
+</head>
 
 
-    <body>empty body
-    </body>
+<body>
+
+<p>empty body</p>
+<p>
+    <button onclick="callNativeSync('233')">call sync native</button>
+</p>
+<p>
+    <button onclick="callNativeAsync('666')">call async native</button>
+</p>
+<!--<p>-->
+<!--<button onclick="callNativeAsync(666){ alert }">call async native</button>-->
+<!--</p>-->
+</body>
 
 </html>

@@ -10,6 +10,7 @@ import android.widget.Toast
 import com.fenbi.android.ytkjsbridge.JsCallback
 import com.fenbi.android.ytkjsbridge.getJsInterface
 import com.fenbi.android.ytkjsbridge.initYTK
+import com.fenbi.android.ytkjsbridge.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 
@@ -53,5 +54,22 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, ret, Toast.LENGTH_SHORT).show()
             }
         }
+
+        mWebView.addYTKJavascriptInterface(object {
+            fun toastSync(msg: String?): Int {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "synchronous call with param: $msg", Toast.LENGTH_SHORT).show()
+                }
+                return 666
+            }
+
+            fun toastAsync(msg: String?, callback: JsCallback<Int>): Int {
+                runOnUiThread {
+                    Toast.makeText(this@MainActivity, "asynchronous call with param: $msg", Toast.LENGTH_SHORT).show()
+                }
+                callback.onReceiveValue(233)
+                return 0
+            }
+        })
     }
 }
