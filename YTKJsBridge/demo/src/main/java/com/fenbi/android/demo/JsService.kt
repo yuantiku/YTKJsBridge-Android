@@ -9,7 +9,7 @@ interface JsService {
 
     fun showMessage(str: String?, callback: JsCallback<Int>?)
 
-    fun showMessage2(str1: String?, str2: String?, int1: Int?, callback: JsCallback<Int>?)
+    fun showMessage2(str1: String?, str2: String?, int1: Int?, callback: (Int?)->Unit)
 
     suspend fun testSync(arg1: String, arg2: Int): String
 }

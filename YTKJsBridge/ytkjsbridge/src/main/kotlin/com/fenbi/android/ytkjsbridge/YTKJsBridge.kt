@@ -8,6 +8,7 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
+import java.lang.IllegalStateException
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
@@ -88,7 +89,7 @@ class YTKJsBridge {
      * asynchronous call javascript function [methodName] with [args] as params.
      */
     fun <T> call(methodName: String, vararg args: Any?, callback: JsCallback<T>?) {
-        val jsonArray = JSONArray(args)
+        val jsonArray = JSONArray(args.toList())
         val callInfo = CallInfo(methodName, jsonArray.toString(), callId.getAndIncrement())
         if (callback != null) {
             callMap[callInfo.callId] = callback as JsCallback<Any>
@@ -121,12 +122,18 @@ class YTKJsBridge {
         val clazz = T::class.java
         val proxy = InvocationHandler { _, method, args ->
             val paramTypes = method.parameterTypes
-            val isAsync = paramTypes.isNotEmpty() && JsCallback::class.java.isAssignableFrom(paramTypes.last())
+            val hasJsCallback = paramTypes.isNotEmpty() && JsCallback::class.java.isAssignableFrom(paramTypes.last())
             val lastArg = args?.lastOrNull()
             return@InvocationHandler when {
-                isAsync -> callWithCallback(method, args)
+                hasJsCallback -> callWithCallback(method, args)
                 lastArg is Continuation<*> -> callSuspended<T>(method, args)
-                else -> call<T>(method.name, *args.orEmpty()) {}
+                lastArg is Function1<*, *> -> call<T>(
+                    method.name,
+                    *args.orEmpty().take(args.size - 1).toTypedArray(),
+                    callback = { ret: Any? ->
+                        (lastArg as Function1<Any?, Unit>)(ret)
+                    })
+                else -> throw IllegalStateException("the interface you declared do not satisfy YTKJsBridge requirements.")
             }
         }
         return Proxy.newProxyInstance(proxy.javaClass.classLoader, arrayOf(clazz), proxy) as T

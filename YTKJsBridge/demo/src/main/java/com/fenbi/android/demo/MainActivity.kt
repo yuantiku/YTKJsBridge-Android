@@ -41,11 +41,9 @@ class MainActivity : AppCompatActivity() {
             })
         }
         mCallJsBt2.setOnClickListener {
-            jsInterface.showMessage2("hello", "world", 2019, object : JsCallback<Int> {
-                override fun onReceiveValue(ret: Int?) {
-                    Toast.makeText(this@MainActivity, "js call return value $ret", Toast.LENGTH_SHORT).show()
-                }
-            })
+            jsInterface.showMessage2("hello", "world", 2019) { ret ->
+                Toast.makeText(this@MainActivity, "js call return value $ret", Toast.LENGTH_SHORT).show()
+            }
         }
         mCallJsBt3.setOnClickListener {
             GlobalScope.launch {
