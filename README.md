@@ -9,7 +9,7 @@
 * 动态、静态调用
 * 不需要继承定制的WebView，代码侵入性小
 
-\* Android端仅支持suspend function形式的同步调用
+\* Android调用JS仅支持suspend function形式的同步调用
 
 ## 使用
 
@@ -19,7 +19,7 @@ Javascript:
 
 ```javascript
 //注册 javascript API
-ytkBridge.def('functionName', function(arg){
+ytkBridge.provide('functionName', function(arg){
     return arg + "ok";
 })
 ```
@@ -38,7 +38,6 @@ webView.call("functionName", "arg1") { result: String ->
 * 静态
 
 ```kotlin
-@YTKJsInerface
 interface JsFunctions {
     fun func1(
         arg1: String,
@@ -72,7 +71,6 @@ GlobalScope.launch {
 * 静态：
 
 ```kotlin
-@YTKJsInerface
 interface JsFunctions {
     suspend fun func1(arg1: String, arg2: Int): String
 }
@@ -89,26 +87,25 @@ GlobalScope.launch {
 Android端：
 
 ```kotlin
-@YTKJsApi
-class JsApi {
+object JsApi {
     //同步API
     @JavascriptInterface
-    fun testSync(msg: Any): String {
+    fun testSync(msg: String): String {
         return msg + "［syn call］"
     }
 
     //异步API
     @JavascriptInterface
-    fun testAsync(msg: Any, onComplete: (String) -> Unit) {
+    fun testAsync(msg: String, onComplete: JsCallback) {
         // do some work
-        onComplete(msg+" [ asyn call]")
+        onComplete.onReceiveValue(msg+" [ asyn call]")
     }
 }
 
-webView.addYTKJavascriptInterface(JsApi())
+webView.addYTKJavascriptInterface(JsApi)
 ```
 
-可以添加多个JsApi，可省略注入变量名，在javascript中统一用ytkBridge调用。
+可以添加多个JsApi，并且无需指定注入变量名，在javascript中统一用ytkBridge调用。
 
 Javascript:
 
@@ -121,3 +118,37 @@ ytkBridge.call("testAsync", "some msg", function (v) {
   alert(v);
 })
 ```
+
+#### namespace
+
+`addYTKJavascriptInterface`可指定一个namespace参数，用于添加多个JsApi对象时的方
+法重名问题。例如
+
+```kotlin
+object JsApi1 {
+    @JavascriptInterface
+    fun testFunc(msg: String): String {
+        return msg + ", this is JsApi1"
+    }
+}
+
+object JsApi2 {
+    @JavascriptInterface
+    fun testFunc(msg: String): String {
+        return msg + ", this is JsApi2"
+    }
+}
+
+webView.addYTKJavascriptInterface(JsApi1, "api1" /*namespace*/)
+
+webView.addYTKJavascriptInterface(JsApi2, "api2")
+```
+
+前端调用时用
+
+```javascript
+var str = ytkBridge.call("api1.testFunc", "some msg");
+```
+
+如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
+的方法时会调用最后一个被添加的对象中的方法。
