@@ -1,6 +1,5 @@
 package com.fenbi.android.demo
 
-import com.fenbi.android.annotation.YTKJsInterface
 import com.fenbi.android.ytkjsbridge.JsCallback
 
 /**

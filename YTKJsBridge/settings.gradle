@@ -1,1 +1,1 @@
-include ':ytkjsbridge', ':annotationProcessing', ':annotation', ':demo'
+include ':ytkjsbridge', ':demo'
