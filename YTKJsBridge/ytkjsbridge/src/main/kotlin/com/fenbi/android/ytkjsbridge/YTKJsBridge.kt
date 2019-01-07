@@ -8,11 +8,10 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
 import org.json.JSONException
 import org.json.JSONObject
-import java.lang.IllegalStateException
 import java.lang.reflect.InvocationHandler
 import java.lang.reflect.Method
 import java.lang.reflect.Proxy
-import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resume
@@ -25,12 +24,8 @@ import kotlin.reflect.full.functions
 
 class YTKJsBridge {
 
-    companion object {
-        const val BRIDGE_NAME = "YTKJsBridge"
-    }
-
-    private val callId by lazy { AtomicInteger() }
-    private val callMap by lazy { mutableMapOf<Int, JsCallback<Any>?>() }
+    private val callId by lazy { AtomicLong() }
+    private val callMap by lazy { mutableMapOf<Long, JsCallback<Any>?>() }
     private val interfaceMap by lazy { mutableMapOf<String, Any>() }
     private val methodMap by lazy { mutableMapOf<String, Any>() }
     private val handler = Handler(Looper.getMainLooper())
@@ -46,7 +41,7 @@ class YTKJsBridge {
             jsonStr?.let {
                 try {
                     val jsonObject = JSONObject(jsonStr)
-                    val callId = jsonObject.optInt("callId", -1)
+                    val callId = jsonObject.optLong("callId", -1)
                     val ret = jsonObject.opt("ret")
                     dispatchJsCallback(callId, ret)
                 } catch (e: JSONException) {
@@ -64,8 +59,8 @@ class YTKJsBridge {
                 try {
                     val jsonObject = JSONObject(jsonStr)
                     val methodName = jsonObject.optString("methodName")
-                    val param = jsonObject.optString("param")
-                    val callId = jsonObject.optInt("callId")
+                    val param = jsonObject.get("args")
+                    val callId = jsonObject.optLong("callId")
                     return dispatchJsCall(methodName, param, callId)
                 } catch (e: JSONException) {
 
@@ -173,7 +168,7 @@ class YTKJsBridge {
         }
     }
 
-    private fun dispatchJsCall(namespace: String, param: String?, callId: Int): String {
+    private fun dispatchJsCall(namespace: String, param: Any?, callId: Long): String {
         val jsonObject = JSONObject()
         try {
             jsonObject.put("ret", "")
@@ -192,21 +187,32 @@ class YTKJsBridge {
             var isLambda = false
             var method: Method? = null
             try {
-                method = obj.javaClass.getMethod(methodName, String::class.java, Function1::class.java)
-                isAsync = true
+                val paramTypes = if (param.isNull)
+                    arrayOf(Function1::class.java)
+                else
+                    arrayOf(param!!::class.java, Function1::class.java)
+                method = obj.javaClass.getMethod(methodName, *paramTypes)
                 isLambda = true
             } catch (e: Exception) {
 
             }
             try {
-                method = obj.javaClass.getMethod(methodName, String::class.java, JsCallback::class.java)
+                val paramTypes = if (param.isNull)
+                    arrayOf(JsCallback::class.java)
+                else
+                    arrayOf(param!!::class.java, JsCallback::class.java)
+                method = obj.javaClass.getMethod(methodName, *paramTypes)
                 isAsync = true
             } catch (e: Exception) {
 
             }
             if (method == null) {
                 try {
-                    method = obj.javaClass.getMethod(methodName, String::class.java)
+                    val paramTypes = if (param.isNull)
+                        emptyArray()
+                    else
+                        arrayOf(param!!::class.java)
+                    method = obj.javaClass.getMethod(methodName, *paramTypes)
                 } catch (e: Exception) {
 
                 }
@@ -224,24 +230,38 @@ class YTKJsBridge {
                         jsonObject.put("callId", callId)
                         makeJsCallback(jsonObject)
                     }
-                    method.invoke(obj, param, callback)
+                    if (param.isNull) {
+                        method.invoke(obj, callback)
+                    } else {
+                        method.invoke(obj, param, callback)
+                    }
                     jsonObject.put("code", 0)
                     return jsonObject.toString()
                 }
                 isAsync -> {
-                    method.invoke(obj, param, object : JsCallback<Any> {
+                    val callback = object : JsCallback<Any> {
                         override fun onReceiveValue(ret: Any?) {
                             jsonObject.put("ret", ret)
                             jsonObject.put("code", 0)
                             jsonObject.put("callId", callId)
                             makeJsCallback(jsonObject)
                         }
-                    })
+                    }
+                    if (param.isNull) {
+                        method.invoke(obj, callback)
+                    } else {
+                        method.invoke(obj, param, callback)
+                    }
                     jsonObject.put("code", 0)
                     return jsonObject.toString()
                 }
                 else -> {
-                    jsonObject.put("ret", method.invoke(obj, param))
+                    val ret = if (param.isNull) {
+                        method.invoke(obj)
+                    } else {
+                        method.invoke(obj, param)
+                    }
+                    jsonObject.put("ret", ret)
                     jsonObject.put("code", 0)
                     return jsonObject.toString()
                 }
@@ -252,11 +272,13 @@ class YTKJsBridge {
             } catch (e: JSONException) {
 
             }
+        } catch (e: Throwable) {
+            e.printStackTrace()
         }
         return jsonObject.toString()
     }
 
-    private fun dispatchJsCallback(callId: Int, ret: Any?) {
+    private fun dispatchJsCallback(callId: Long, ret: Any?) {
         uiThread {
             callMap[callId]?.onReceiveValue(ret)
             callMap.remove(callId)
@@ -271,7 +293,7 @@ class YTKJsBridge {
         }
     }
 
-    private class CallInfo(val methodName: String, val args: String?, val callId: Int) {
+    private class CallInfo(val methodName: String, val args: String?, val callId: Long) {
 
         override fun toString(): String {
             val jsonObject = JSONObject()
@@ -284,5 +306,12 @@ class YTKJsBridge {
             }
             return jsonObject.toString()
         }
+    }
+
+    companion object {
+        const val BRIDGE_NAME = "YTKJsBridge"
+
+        private val Any?.isNull: Boolean
+            get() = this == null || this == JSONObject.NULL
     }
 }
