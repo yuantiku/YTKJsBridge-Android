@@ -19,7 +19,13 @@ val WebView.ytkJsBridge: YTKJsBridge
         } else {
             settings.javaScriptEnabled = true
             YTKJsBridge().also {
-                it.jsEvaluator = { script -> evaluateJavascript(script, null) }
+                it.jsEvaluator = { script ->
+                    if (Build.VERSION.SDK_INT >= 19) {
+                        evaluateJavascript(script, null)
+                    } else {
+                        loadUrl("javascript:$script")
+                    }
+                }
                 addJavascriptInterface(it.javascriptInterface, YTKJsBridge.BRIDGE_NAME)
                 setTag(TAG_KEY_YTK_JS_BRIDGE, it)
             }
