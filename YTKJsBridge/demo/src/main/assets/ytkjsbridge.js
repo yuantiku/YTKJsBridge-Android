@@ -42,7 +42,7 @@ function testSync(args) {
 function callNativeSync(param){
     var json={
         "methodName":"toastSync",
-        "param":param,
+        "args":param,
         "callId":-1
     }
     var result=window.YTKJsBridge.callNative(JSON.stringify(json))
@@ -53,7 +53,7 @@ function callNativeSync(param){
 function callNativeAsync(param,f){
       var json={
            "methodName":"toast",
-           "param":param,
+           "args":param,
            "callId":1
        }
     var result=window.YTKJsBridge.callNative(JSON.stringify(json))

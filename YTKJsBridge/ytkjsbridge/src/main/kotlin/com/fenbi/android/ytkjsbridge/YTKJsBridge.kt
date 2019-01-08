@@ -3,6 +3,7 @@ package com.fenbi.android.ytkjsbridge
 import android.os.Handler
 import android.os.Looper
 import android.support.annotation.Keep
+import android.util.Log
 import android.webkit.JavascriptInterface
 import kotlinx.coroutines.suspendCancellableCoroutine
 import org.json.JSONArray
@@ -24,11 +25,13 @@ import kotlin.reflect.full.functions
 
 class YTKJsBridge {
 
+    private val TAG = "YTKJsBridge@${hashCode()}"
     private val callId by lazy { AtomicLong() }
     private val callMap by lazy { mutableMapOf<Long, JsCallback<Any>?>() }
     private val interfaceMap by lazy { mutableMapOf<String, Any>() }
     private val methodMap by lazy { mutableMapOf<String, Any>() }
     private val handler = Handler(Looper.getMainLooper())
+    var debugMode = BuildConfig.DEBUG
 
     var jsEvaluator: (script: String) -> Unit = {}
 
@@ -45,7 +48,8 @@ class YTKJsBridge {
                     val ret = jsonObject.opt("ret")
                     dispatchJsCallback(callId, ret)
                 } catch (e: JSONException) {
-
+                    e.printStackTrace()
+                    logError("makeCallback() with parameter:$jsonStr occurs exception:$e")
                 }
             }
         }
@@ -62,8 +66,9 @@ class YTKJsBridge {
                     val param = jsonObject.get("args")
                     val callId = jsonObject.optLong("callId")
                     return dispatchJsCall(methodName, param, callId)
-                } catch (e: JSONException) {
-
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    logError("callNative() with parameter:$jsonStr occurs exception:$e")
                 }
             }
             return null
@@ -123,8 +128,7 @@ class YTKJsBridge {
                 hasJsCallback -> callWithCallback(method, args)
                 lastArg is Continuation<*> -> callSuspended<T>(method, args)
                 lastArg is Function1<*, *> -> call<T>(
-                    method.name,
-                    *args.orEmpty().take(args.size - 1).toTypedArray(),
+                    method.name, *args.take(args.size - 1).toTypedArray(),
                     callback = { ret: Any? ->
                         (lastArg as Function1<Any?, Unit>)(ret)
                     })
@@ -179,8 +183,9 @@ class YTKJsBridge {
             val index = namespace.indexOfLast { it == '.' }
             val methodName = namespace.substring(if (index < 0) 0 else index + 1)
             if (obj == null) {
-                //log
-                jsonObject.put("message", "native interface:$namespace not found.")
+                val msg = "native YTKJavascriptInterface for $namespace not found."
+                logError(msg)
+                jsonObject.put("message", msg)
                 return jsonObject.toString()
             }
             var isAsync = false
@@ -196,15 +201,17 @@ class YTKJsBridge {
             } catch (e: Exception) {
 
             }
-            try {
-                val paramTypes = if (param.isNull)
-                    arrayOf(JsCallback::class.java)
-                else
-                    arrayOf(param!!::class.java, JsCallback::class.java)
-                method = obj.javaClass.getMethod(methodName, *paramTypes)
-                isAsync = true
-            } catch (e: Exception) {
+            if (method == null) {
+                try {
+                    val paramTypes = if (param.isNull)
+                        arrayOf(JsCallback::class.java)
+                    else
+                        arrayOf(param!!::class.java, JsCallback::class.java)
+                    method = obj.javaClass.getMethod(methodName, *paramTypes)
+                    isAsync = true
+                } catch (e: Exception) {
 
+                }
             }
             if (method == null) {
                 try {
@@ -218,8 +225,9 @@ class YTKJsBridge {
                 }
             }
             if (method == null) {
-                //log
-                jsonObject.put("message", "native method:$namespace not found.")
+                val msg = "native method:$namespace not found."
+                logError(msg)
+                jsonObject.put("message", msg)
                 return jsonObject.toString()
             }
             when {
@@ -266,14 +274,11 @@ class YTKJsBridge {
                     return jsonObject.toString()
                 }
             }
-        } catch (e: JSONException) {
-            try {
-                jsonObject.put("message", "native occurs JSONException:$e.")
-            } catch (e: JSONException) {
-
-            }
-        } catch (e: Throwable) {
+        } catch (e: Exception) {
             e.printStackTrace()
+            val msg = "dispatchJsCall() occurs Exception:$e"
+            logError(msg)
+            jsonObject.put("message", msg)
         }
         return jsonObject.toString()
     }
@@ -293,8 +298,18 @@ class YTKJsBridge {
         }
     }
 
-    private class CallInfo(val methodName: String, val args: String?, val callId: Long) {
+    private fun logError(msg: String) {
+        if (debugMode) {
+            Log.e(TAG, msg)
+            uiThread {
+                val script = String.format("alert('%s')", "YTKJsBridge Error:$msg")
+                jsEvaluator(script)
+                Log.e(TAG, script)
+            }
+        }
+    }
 
+    private class CallInfo(val methodName: String, val args: String?, val callId: Long) {
         override fun toString(): String {
             val jsonObject = JSONObject()
             try {
@@ -302,7 +317,7 @@ class YTKJsBridge {
                 jsonObject.put("args", args)
                 jsonObject.put("callId", callId)
             } catch (e: JSONException) {
-                //log
+                e.printStackTrace()
             }
             return jsonObject.toString()
         }

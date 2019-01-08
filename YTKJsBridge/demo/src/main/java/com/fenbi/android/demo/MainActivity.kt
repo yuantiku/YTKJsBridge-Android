@@ -8,9 +8,7 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.Toast
-import com.fenbi.android.ytkjsbridge.JsCallback
-import com.fenbi.android.ytkjsbridge.addYTKJavascriptInterface
-import com.fenbi.android.ytkjsbridge.getJsInterface
+import com.fenbi.android.ytkjsbridge.*
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 

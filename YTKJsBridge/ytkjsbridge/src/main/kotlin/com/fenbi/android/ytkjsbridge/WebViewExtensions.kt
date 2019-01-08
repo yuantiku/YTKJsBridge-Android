@@ -2,6 +2,7 @@ package com.fenbi.android.ytkjsbridge
 
 import android.annotation.SuppressLint
 import android.webkit.WebView
+import java.lang.reflect.Field
 
 /**
  * @author zheng on 1/4/19
@@ -23,6 +24,12 @@ val WebView.ytkJsBridge: YTKJsBridge
                 setTag(TAG_KEY_YTK_JS_BRIDGE, it)
             }
         }
+    }
+
+var WebView.debugMode: Boolean
+    get() = ytkJsBridge.debugMode
+    set(value) {
+        ytkJsBridge.debugMode = value
     }
 
 fun WebView.addYTKJavascriptInterface(obj: Any, namespace: String = "") {
