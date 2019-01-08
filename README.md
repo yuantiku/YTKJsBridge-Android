@@ -24,7 +24,6 @@ ytkBridge.provide('functionName', function(arg){
 })
 ```
 
-
 #### 异步调用
 
 * 动态
@@ -152,3 +151,9 @@ var str = ytkBridge.call("api1.testFunc", "some msg");
 
 如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
 的方法时会调用最后一个被添加的对象中的方法。
+
+
+
+#### 调试
+
+debug环境下默认启用调试模式，可以通过`WebView.debugMode=false`手动关闭，请使用“YTKJsBridge”作为TAG过滤日志。此外调试模式下客户端YTKJsBridge的内部异常会在WebView中以弹窗形式显示出来。
