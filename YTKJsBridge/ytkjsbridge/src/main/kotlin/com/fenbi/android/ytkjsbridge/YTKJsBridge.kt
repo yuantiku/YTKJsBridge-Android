@@ -126,13 +126,13 @@ class YTKJsBridge {
             val lastArg = args?.lastOrNull()
             return@InvocationHandler when {
                 hasJsCallback -> callWithCallback(method, args)
-                lastArg is Continuation<*> -> callSuspended<T>(method, args)
-                lastArg is Function1<*, *> -> call<T>(
+                lastArg is Continuation<*> -> callSuspended(method, args)
+                lastArg is Function1<*, *> -> call<Any>(
                     method.name, *args.take(args.size - 1).toTypedArray(),
                     callback = { ret: Any? ->
                         (lastArg as Function1<Any?, Unit>)(ret)
                     })
-                else -> throw IllegalStateException("the interface you declared do not satisfy YTKJsBridge requirements.")
+                else -> call<Any>(method.name, *args, callback = null)
             }
         }
         return Proxy.newProxyInstance(proxy.javaClass.classLoader, arrayOf(clazz), proxy) as T
@@ -148,11 +148,11 @@ class YTKJsBridge {
         call(method.name, *argsButLast.toTypedArray(), callback = callback)
     }
 
-    fun <T> callSuspended(method: Method, args: Array<Any?>): Any {
+    fun callSuspended(method: Method, args: Array<Any?>): Any {
         val lastArg = args.last()
-        val cont = lastArg as Continuation<T?>
+        val cont = lastArg as Continuation<Any?>
         val argsButLast = args.take(args.size - 1)
-        call<T>(method.name, *argsButLast.toTypedArray()) { ret ->
+        call<Any>(method.name, *argsButLast.toTypedArray()) { ret ->
             cont.resume(ret)
         }
         return COROUTINE_SUSPENDED
@@ -233,8 +233,13 @@ class YTKJsBridge {
             when {
                 isLambda -> {
                     val callback = { ret: Any ->
-                        jsonObject.put("ret", ret)
-                        jsonObject.put("code", 0)
+                        if (ret is Throwable) {
+                            jsonObject.put("message", ret.message)
+                            jsonObject.put("code", -1)
+                        } else {
+                            jsonObject.put("ret", ret)
+                            jsonObject.put("code", 0)
+                        }
                         jsonObject.put("callId", callId)
                         makeJsCallback(jsonObject)
                     }
@@ -249,8 +254,13 @@ class YTKJsBridge {
                 isAsync -> {
                     val callback = object : JsCallback<Any> {
                         override fun onReceiveValue(ret: Any?) {
-                            jsonObject.put("ret", ret)
-                            jsonObject.put("code", 0)
+                            if (ret is Throwable) {
+                                jsonObject.put("message", ret.message)
+                                jsonObject.put("code", -1)
+                            } else {
+                                jsonObject.put("ret", ret)
+                                jsonObject.put("code", 0)
+                            }
                             jsonObject.put("callId", callId)
                             makeJsCallback(jsonObject)
                         }
@@ -330,3 +340,9 @@ class YTKJsBridge {
             get() = this == null || this == JSONObject.NULL
     }
 }
+
+fun <T> ((T) -> Unit).error(e: Throwable) =
+    (this as ((Any) -> Unit))(e)
+
+fun JsCallback<*>.error(e: Throwable) =
+    (this as JsCallback<Any>).onReceiveValue(e)
