@@ -76,8 +76,8 @@ class YTKJsBridge {
     }
 
     fun addYTKJavascriptInterface(obj: Any, namespace: String = "") {
-        obj::class.functions
-            .filter { it.findAnnotation<JavascriptInterface>() != null }
+        obj::class.java.methods
+            .filter { it.isAnnotationPresent(JavascriptInterface::class.java) }
             .forEach {
                 val prefix = if (namespace.isNotEmpty()) "$namespace." else namespace
                 interfaceMap[prefix + it.name] = obj
