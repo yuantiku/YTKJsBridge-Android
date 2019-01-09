@@ -13,6 +13,14 @@
 
 ## 使用
 
+### 初始化
+
+```java
+mWebView.initYTKJsBridge()    //you should call initYTKJsBridge() before using loadUrl()
+```
+
+使用YTKJsBridge前要进行初始化`initYTKJsBridge()`,初始化完成后再进行loadUrl等操作。
+
 ### Android调用JS
 
 Javascript:
@@ -151,8 +159,6 @@ var str = ytkBridge.call("api1.testFunc", "some msg");
 
 如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
 的方法时会调用最后一个被添加的对象中的方法。
-
-
 
 #### 调试
 

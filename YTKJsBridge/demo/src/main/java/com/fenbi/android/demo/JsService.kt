@@ -1,10 +1,12 @@
 package com.fenbi.android.demo
 
+import android.support.annotation.Keep
 import com.fenbi.android.ytkjsbridge.JsCallback
 
 /**
  * Created by yangjw on 2019/1/2.
  */
+@Keep
 interface JsService {
 
     fun showMessage(str: String?, callback: JsCallback<Int>?)

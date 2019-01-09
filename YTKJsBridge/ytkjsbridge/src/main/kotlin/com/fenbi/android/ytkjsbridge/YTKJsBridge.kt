@@ -16,8 +16,6 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resume
-import kotlin.reflect.full.findAnnotation
-import kotlin.reflect.full.functions
 
 /**
  * Created by yangjw on 2019/1/2.
@@ -312,7 +310,7 @@ class YTKJsBridge {
         if (debugMode) {
             Log.e(TAG, msg)
             uiThread {
-                val script = String.format("alert('%s')", "YTKJsBridge Error:$msg")
+                val script = "alert('YTKJsBridge Error:${msg.replace("'", "\\'")}')"
                 jsEvaluator(script)
                 Log.e(TAG, script)
             }

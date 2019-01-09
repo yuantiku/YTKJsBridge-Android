@@ -52,7 +52,7 @@ function callNativeSync(param){
 
 function callNativeAsync(param,f){
       var json={
-           "methodName":"toast",
+           "methodName":"toastAsync",
            "args":param,
            "callId":1
        }

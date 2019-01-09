@@ -22,7 +22,13 @@ android {
 
     sourceSets{
         main.java.srcDirs 'src/main/kotlin'
+
+        androidTest{
+            assets.srcDirs 'src/androidTest/assets/'
+        }
     }
+
+
 }
 
 dependencies {

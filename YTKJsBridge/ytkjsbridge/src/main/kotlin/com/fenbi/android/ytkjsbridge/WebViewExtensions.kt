@@ -14,22 +14,8 @@ val WebView.ytkJsBridge: YTKJsBridge
     @SuppressLint("JavascriptInterface")
     get() {
         val bridge = getTag(TAG_KEY_YTK_JS_BRIDGE)
-        return if (bridge is YTKJsBridge) {
-            bridge
-        } else {
-            settings.javaScriptEnabled = true
-            YTKJsBridge().also {
-                it.jsEvaluator = { script ->
-                    if (Build.VERSION.SDK_INT >= 19) {
-                        evaluateJavascript(script, null)
-                    } else {
-                        loadUrl("javascript:$script")
-                    }
-                }
-                addJavascriptInterface(it.javascriptInterface, YTKJsBridge.BRIDGE_NAME)
-                setTag(TAG_KEY_YTK_JS_BRIDGE, it)
-            }
-        }
+        return if (bridge != null) bridge as YTKJsBridge
+        else throw IllegalStateException("You must call WebView.initYTKJsBridge() before using YTKJsBridge")
     }
 
 var WebView.debugMode: Boolean
@@ -37,6 +23,24 @@ var WebView.debugMode: Boolean
     set(value) {
         ytkJsBridge.debugMode = value
     }
+
+@SuppressLint("JavascriptInterface")
+fun WebView.initYTKJsBridge() {
+    if (!settings.javaScriptEnabled) {
+        settings.javaScriptEnabled = true
+    }
+    val bridge = YTKJsBridge().also {
+        it.jsEvaluator = { script ->
+            if (Build.VERSION.SDK_INT >= 19) {
+                evaluateJavascript(script, null)
+            } else {
+                loadUrl("javascript:$script")
+            }
+        }
+    }
+    setTag(TAG_KEY_YTK_JS_BRIDGE, bridge)
+    addJavascriptInterface(bridge.javascriptInterface, YTKJsBridge.BRIDGE_NAME)
+}
 
 fun WebView.addYTKJavascriptInterface(obj: Any, namespace: String = "") {
     ytkJsBridge.addYTKJavascriptInterface(obj, namespace)

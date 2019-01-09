@@ -1,6 +1,7 @@
 package com.fenbi.android.demo
 
 import android.os.Bundle
+import android.support.annotation.Keep
 import android.support.v7.app.AppCompatActivity
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -10,6 +11,7 @@ import android.widget.Button
 import android.widget.Toast
 import com.fenbi.android.ytkjsbridge.*
 import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 
@@ -27,12 +29,13 @@ class MainActivity : AppCompatActivity() {
         with(mWebView) {
             webChromeClient = WebChromeClient()
             webViewClient = WebViewClient()
+            initYTKJsBridge()
             loadUrl("file:///android_asset/test-native-call-js.html")
         }
 
         val jsInterface = mWebView.getJsInterface<JsService>()
         mCallJsBt.setOnClickListener {
-            jsInterface.showMessage("hello world", object : JsCallback<Int> {
+            mWebView.call("showMessage","hello world",callback = object:JsCallback<Int>{
                 override fun onReceiveValue(ret: Int?) {
                     Toast.makeText(this@MainActivity, "js call return value $ret", Toast.LENGTH_SHORT).show()
                 }
@@ -49,7 +52,7 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, ret, Toast.LENGTH_SHORT).show()
             }
         }
-        mWebView.addYTKJavascriptInterface(object {
+        mWebView.addYTKJavascriptInterface(@Keep object {
             @JavascriptInterface
             fun toastSync(msg: String?): Int {
                 runOnUiThread {
@@ -67,26 +70,5 @@ class MainActivity : AppCompatActivity() {
                 return 0
             }
         })
-        mWebView.addYTKJavascriptInterface(object {
-            @JavascriptInterface
-            fun toastSync(msg: String?): Int {
-                runOnUiThread {
-                    Toast.makeText(
-                        this@MainActivity,
-                        "com.fenbi.android.toastSync call with param: $msg",
-                        Toast.LENGTH_SHORT
-                    ).show()
-                }
-                return 666
-            }
-
-            @JavascriptInterface
-            fun toast(msg: String?, callback: (ret: Int) -> Unit) {
-                runOnUiThread {
-                    Toast.makeText(this@MainActivity, "toast call with param: $msg", Toast.LENGTH_SHORT).show()
-                }
-                callback(123)
-            }
-        }, "com.fenbi.android")
     }
 }
