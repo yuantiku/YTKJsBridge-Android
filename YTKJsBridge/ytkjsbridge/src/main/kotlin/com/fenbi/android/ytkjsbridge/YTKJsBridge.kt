@@ -28,6 +28,7 @@ class YTKJsBridge {
     private val callMap by lazy { mutableMapOf<Long, JsCallback<Any>?>() }
     private val interfaceMap by lazy { mutableMapOf<String, Any>() }
     private val methodMap by lazy { mutableMapOf<String, Any>() }
+    private val listenerMap by lazy { mutableMapOf<String, MutableList<EventListener<Any?>>>() }
     private val handler = Handler(Looper.getMainLooper())
     var debugMode = BuildConfig.DEBUG
 
@@ -61,7 +62,7 @@ class YTKJsBridge {
                 try {
                     val jsonObject = JSONObject(jsonStr)
                     val methodName = jsonObject.optString("methodName")
-                    val param = jsonObject.get("args")
+                    val param = jsonObject.opt("args")
                     val callId = jsonObject.optLong("callId")
                     return dispatchJsCall(methodName, param, callId)
                 } catch (e: Exception) {
@@ -70,6 +71,21 @@ class YTKJsBridge {
                 }
             }
             return null
+        }
+
+        @JavascriptInterface
+        fun sendEvent(jsonStr: String?) {
+            jsonStr?.let {
+                try {
+                    val jsonObject = JSONObject(jsonStr)
+                    val event = jsonObject.optString("event")
+                    val arg = jsonObject.opt("arg")
+                    dispatchJsEvent(event, arg)
+                } catch (e: Exception){
+                    e.printStackTrace()
+                    logError("sendEvent() with parameter:$jsonStr occurs exception:$e")
+                }
+            }
         }
     }
 
@@ -136,6 +152,29 @@ class YTKJsBridge {
         return Proxy.newProxyInstance(proxy.javaClass.classLoader, arrayOf(clazz), proxy) as T
     }
 
+    fun <T> listen(event: String, listener: EventListener<T>) {
+        if (listenerMap[event] == null) {
+            listenerMap[event] = mutableListOf()
+        }
+        listenerMap[event]!!.add(listener as EventListener<Any?>)
+    }
+
+    fun <T> listen(event: String, call: (T?) -> Unit) {
+        listen(event, object : EventListener<T> {
+            override fun onEvent(arg: T?) {
+                call(arg)
+            }
+        })
+    }
+
+    fun clearEventListener(event: String){
+        listenerMap[event]?.clear()
+    }
+
+    fun emit(event: String, arg: Any? = null) {
+        emitInner(Event(event, arg))
+    }
+
     fun callWithCallback(method: Method, args: Array<Any?>?) {
         val argsButLast = if (args?.isNotEmpty() == true) {
             args.take(args.size - 1)
@@ -158,6 +197,13 @@ class YTKJsBridge {
 
     private fun callInner(callInfo: CallInfo) {
         val script = "window.dispatchNativeCall($callInfo)"
+        uiThread {
+            jsEvaluator(script)
+        }
+    }
+
+    private fun emitInner(event: Event) {
+        val script = "window.dispatchNativeEvent($event)"
         uiThread {
             jsEvaluator(script)
         }
@@ -298,6 +344,12 @@ class YTKJsBridge {
         }
     }
 
+    private fun dispatchJsEvent(event: String, param: Any?){
+        uiThread {
+            listenerMap[event]?.forEach { it.onEvent(param) }
+        }
+    }
+
     private fun uiThread(call: () -> Unit) {
         if (Looper.myLooper() != Looper.getMainLooper()) {
             handler.post(call)
@@ -324,6 +376,19 @@ class YTKJsBridge {
                 jsonObject.put("methodName", methodName)
                 jsonObject.put("args", args)
                 jsonObject.put("callId", callId)
+            } catch (e: JSONException) {
+                e.printStackTrace()
+            }
+            return jsonObject.toString()
+        }
+    }
+
+    private class Event(val eventName: String, val arg: Any?){
+        override fun toString(): String {
+            val jsonObject = JSONObject()
+            try {
+                jsonObject.put("event", eventName)
+                jsonObject.put("arg", arg)
             } catch (e: JSONException) {
                 e.printStackTrace()
             }

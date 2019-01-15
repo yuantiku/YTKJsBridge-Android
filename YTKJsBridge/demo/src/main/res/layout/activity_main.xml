@@ -40,4 +40,13 @@
             android:text="suspended call js"
             android:textAllCaps="false"/>
 
+    <Button
+            android:id="@+id/call_js_bt_4"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/call_js_bt_3"
+            android:layout_centerHorizontal="true"
+            android:text="send event to js"
+            android:textAllCaps="false"/>
+
 </RelativeLayout>

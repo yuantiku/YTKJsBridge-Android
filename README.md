@@ -178,7 +178,7 @@ mWebView.emit("onPause") //无参
 mWebView.emit("onPause", "hello") //带参
 
 //监听event
-mWebView.listen("onReady"){ arg
+mWebView.listen("onReady"){ arg ->
  //do something
 }
 //or
@@ -189,7 +189,7 @@ mWebView.listen("onReady",object:JsCallback<String>{
 })
 
 //解除某一事件的所有监听
-mWebView.unregiste("onReady")
+mWebView.clearEventListener("onReady")
 ```
 
 #### javascript端
@@ -205,7 +205,7 @@ JSBridge.listen("onPause",function(arg){
  })
 ```
 
-javascript发出的event只会由native注册的监听器接收，native发出的event只会由js注册的监听器接收。每一事件可以注册多个listener。
+native或javascript发送的event只会由对方注册的监听器接收，每一事件可以注册多个listener。
 
 
 

@@ -21,6 +21,7 @@ class MainActivity : AppCompatActivity() {
     private val mCallJsBt by lazy { findViewById<Button>(R.id.call_js_bt) }
     private val mCallJsBt2 by lazy { findViewById<Button>(R.id.call_js_bt_2) }
     private val mCallJsBt3 by lazy { findViewById<Button>(R.id.call_js_bt_3) }
+    private val mCallJsBt4 by lazy { findViewById<Button>(R.id.call_js_bt_4) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -52,6 +53,9 @@ class MainActivity : AppCompatActivity() {
                 Toast.makeText(this@MainActivity, ret, Toast.LENGTH_SHORT).show()
             }
         }
+        mCallJsBt4.setOnClickListener {
+            mWebView.emit("onClick", "emit from bt4")
+        }
         mWebView.addYTKJavascriptInterface(@Keep object {
             @JavascriptInterface
             fun toastSync(msg: String?): Int {
@@ -70,5 +74,8 @@ class MainActivity : AppCompatActivity() {
                 return 0
             }
         })
+        mWebView.listen<String>("onClick"){
+            Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show()
+        }
     }
 }

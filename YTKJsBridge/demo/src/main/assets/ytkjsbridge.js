@@ -9,6 +9,12 @@ function dispatchNativeCall(call){
     window.YTKJsBridge.makeCallback(JSON.stringify(json))
 }
 
+function dispatchNativeEvent(args){
+    var event=args.event
+    var param=args.arg
+    alert("receive event from native:"+event+"  parameter:"+param)
+}
+
 function dispatchCallbackFromNative(call){
     var callId=call.callId
     var result=call.ret
@@ -35,9 +41,13 @@ function testSync(args) {
     return "suspended"
 }
 
-
-//var callMap={ }
-//var callId=0
+function sendEvent() {
+    var event = {
+        "event": "onClick",
+        "arg": "click event from js"
+    }
+    window.YTKJsBridge.sendEvent(JSON.stringify(event))
+}
 
 function callNativeSync(param){
     var json={
