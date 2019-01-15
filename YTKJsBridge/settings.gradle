@@ -1,1 +1,1 @@
-include ':ytkjsbridge', ':demo'
+include ':ytkjsbridge', ':demo', ':ytkjsbridgex5'

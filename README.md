@@ -8,6 +8,7 @@
 * 同步、异步调用 \*
 * 动态、静态调用
 * 不需要继承定制的WebView，代码侵入性小
+* 支持腾讯x5内核
 
 \* Android调用JS仅支持suspend function形式的同步调用
 
@@ -15,11 +16,13 @@
 
 ### 初始化
 
+在需要使用YTKJsBridge的h5页面上引入[ytkjsbridge.js](https://github.com/yuantiku/YTKJsBridge-Android/blob/master/YTKJsBridge/ytkjsbridge/ytkjsbridge.js)文件。
+
+同时使用YTKJsBridge前要进行初始化`initYTKJsBridge()`,初始化完成后再进行loadUrl等操作。
+
 ```java
 mWebView.initYTKJsBridge()    //you should call initYTKJsBridge() before using loadUrl()
 ```
-
-使用YTKJsBridge前要进行初始化`initYTKJsBridge()`,初始化完成后再进行loadUrl等操作。
 
 ### Android调用JS
 
