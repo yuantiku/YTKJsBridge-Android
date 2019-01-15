@@ -16,7 +16,11 @@
 
 ### 初始化
 
-在需要使用YTKJsBridge的h5页面上引入[ytkjsbridge.js](https://github.com/yuantiku/YTKJsBridge-Android/blob/master/YTKJsBridge/ytkjsbridge/ytkjsbridge.js)文件。
+在需要使用YTKJsBridge的h5页面上引入[ytkjsbridge.js](https://github.com/yuantiku/YTKJsBridge-Android/blob/master/YTKJsBridge/ytkjsbridge/ytkjsbridge.js)文件，或者在h5页面上通过url方式引入。
+
+```http
+<script type="text/javascript" src="https://conan-online.fbcontent.cn/conan-math/webview.js"></script>
+```
 
 同时使用YTKJsBridge前要进行初始化`initYTKJsBridge()`,初始化完成后再进行loadUrl等操作。
 
@@ -30,7 +34,7 @@ Javascript:
 
 ```javascript
 //注册 javascript API
-ytkBridge.provide('functionName', function(arg){
+JSBridge.bindCall('functionName', function(arg){
     return arg + "ok";
 })
 ```
@@ -120,13 +124,10 @@ webView.addYTKJavascriptInterface(JsApi)
 Javascript:
 
 ```javascript
-//同步调用
-var str = ytkBridge.call("testSync", "some msg");
-
-//异步调用
-ytkBridge.call("testAsync", "some msg", function (v) {
-  alert(v);
-})
+JSBridge.call(method, args, async)
+//method: 方法名
+//args: 传给客户端的参数，如果有回调请在 args 注入。如：args = { trigger: () => {} }
+//async: 是否异步调用
 ```
 
 #### namespace
@@ -157,12 +158,57 @@ webView.addYTKJavascriptInterface(JsApi2, "api2")
 前端调用时用
 
 ```javascript
-var str = ytkBridge.call("api1.testFunc", "some msg");
+var str = JSBridge.call("api1.testFunc", {"some msg"});
 ```
 
 如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
 的方法时会调用最后一个被添加的对象中的方法。
 
-#### 调试
+
+
+### 事件机制
+
+除了native与javascript的双向方法调用外，YTKJsBridge还提供一套供双方互相发送以及监听事件的机制。
+
+#### native端
+
+```kotlin
+//发送event
+mWebView.emit("onPause") //无参
+mWebView.emit("onPause", "hello") //带参
+
+//监听event
+mWebView.listen("onReady"){ arg
+ //do something
+}
+//or
+mWebView.listen("onReady",object:JsCallback<String>{
+     override fun onReceiveValue(ret: String?){
+         //do something
+     }
+})
+
+//解除某一事件的所有监听
+mWebView.unregiste("onReady")
+```
+
+#### javascript端
+
+```javascript
+//发送event
+JSBridge.emit("onReady") //无参
+JSBridge.emit("onClick", "hello") //带参
+
+//监听event
+JSBridge.listen("onPause",function(arg){
+     //do something
+ })
+```
+
+javascript发出的event只会由native注册的监听器接收，native发出的event只会由js注册的监听器接收。每一事件可以注册多个listener。
+
+
+
+### 调试
 
 debug环境下默认启用调试模式，可以通过`WebView.debugMode=false`手动关闭，请使用“YTKJsBridge”作为TAG过滤日志。此外调试模式下客户端YTKJsBridge的内部异常会在WebView中以弹窗形式显示出来。
