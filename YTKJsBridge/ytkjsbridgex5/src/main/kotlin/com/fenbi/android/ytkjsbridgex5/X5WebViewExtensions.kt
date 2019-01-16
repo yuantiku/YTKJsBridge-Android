@@ -2,8 +2,10 @@ package com.fenbi.android.ytkjsbridgex5
 
 import android.annotation.SuppressLint
 import android.os.Build
+import com.fenbi.android.ytkjsbridge.EventListener
 import com.fenbi.android.ytkjsbridge.JsCallback
 import com.fenbi.android.ytkjsbridge.YTKJsBridge
+import com.fenbi.android.ytkjsbridge.ytkJsBridge
 import com.tencent.smtt.sdk.WebView
 
 /**
@@ -62,4 +64,20 @@ suspend fun <T> WebView.call(methodName: String, vararg args: Any?): T? {
 
 inline fun <reified T> WebView.getJsInterface(): T {
     return ytkJsBridge.getJsInterface()
+}
+
+fun <T> WebView.listen(event: String, listener: EventListener<T>) {
+    ytkJsBridge.listen(event, listener)
+}
+
+fun <T> WebView.listen(event: String, call: (T?) -> Unit) {
+    ytkJsBridge.listen(event, call)
+}
+
+fun WebView.emit(event: String, arg: Any? = null) {
+    ytkJsBridge.emit(event, arg)
+}
+
+fun WebView.clearEventListener(event: String){
+    ytkJsBridge.clearEventListener(event)
 }
