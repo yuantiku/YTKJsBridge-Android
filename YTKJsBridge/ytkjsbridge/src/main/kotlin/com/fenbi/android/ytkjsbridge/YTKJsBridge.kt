@@ -81,7 +81,7 @@ class YTKJsBridge {
                     val event = jsonObject.optString("event")
                     val arg = jsonObject.opt("arg")
                     dispatchJsEvent(event, arg)
-                } catch (e: Exception){
+                } catch (e: Exception) {
                     e.printStackTrace()
                     logError("sendEvent() with parameter:$jsonStr occurs exception:$e")
                 }
@@ -167,7 +167,7 @@ class YTKJsBridge {
         })
     }
 
-    fun clearEventListener(event: String){
+    fun clearEventListener(event: String) {
         listenerMap[event]?.clear()
     }
 
@@ -277,15 +277,16 @@ class YTKJsBridge {
             when {
                 isLambda -> {
                     val callback = { ret: Any ->
+                        val jsObj = JSONObject(jsonObject.toString())
                         if (ret is Throwable) {
-                            jsonObject.put("message", ret.message)
-                            jsonObject.put("code", -1)
+                            jsObj.put("message", ret.message)
+                            jsObj.put("code", -1)
                         } else {
-                            jsonObject.put("ret", ret)
-                            jsonObject.put("code", 0)
+                            jsObj.put("ret", ret)
+                            jsObj.put("code", 0)
                         }
-                        jsonObject.put("callId", callId)
-                        makeJsCallback(jsonObject)
+                        jsObj.put("callId", callId)
+                        makeJsCallback(jsObj)
                     }
                     if (param.isNull) {
                         method.invoke(obj, callback)
@@ -298,15 +299,16 @@ class YTKJsBridge {
                 isAsync -> {
                     val callback = object : JsCallback<Any> {
                         override fun onReceiveValue(ret: Any?) {
+                            val jsObj = JSONObject(jsonObject.toString())
                             if (ret is Throwable) {
-                                jsonObject.put("message", ret.message)
-                                jsonObject.put("code", -1)
+                                jsObj.put("message", ret.message)
+                                jsObj.put("code", -1)
                             } else {
-                                jsonObject.put("ret", ret)
-                                jsonObject.put("code", 0)
+                                jsObj.put("ret", ret)
+                                jsObj.put("code", 0)
                             }
-                            jsonObject.put("callId", callId)
-                            makeJsCallback(jsonObject)
+                            jsObj.put("callId", callId)
+                            makeJsCallback(jsObj)
                         }
                     }
                     if (param.isNull) {
@@ -344,7 +346,7 @@ class YTKJsBridge {
         }
     }
 
-    private fun dispatchJsEvent(event: String, param: Any?){
+    private fun dispatchJsEvent(event: String, param: Any?) {
         uiThread {
             listenerMap[event]?.forEach { it.onEvent(param) }
         }
@@ -383,7 +385,7 @@ class YTKJsBridge {
         }
     }
 
-    private class Event(val eventName: String, val arg: Any?){
+    private class Event(val eventName: String, val arg: Any?) {
         override fun toString(): String {
             val jsonObject = JSONObject()
             try {

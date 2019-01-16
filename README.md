@@ -35,7 +35,7 @@ Javascript:
 ```javascript
 //注册 javascript API
 JSBridge.bindCall('functionName', function(arg){
-    return arg + "ok";
+    return arg;
 })
 ```
 
@@ -164,8 +164,6 @@ var str = JSBridge.call("api1.testFunc", {"some msg"});
 如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
 的方法时会调用最后一个被添加的对象中的方法。
 
-
-
 ### 事件机制
 
 除了native与javascript的双向方法调用外，YTKJsBridge还提供一套供双方互相发送以及监听事件的机制。
@@ -183,9 +181,9 @@ mWebView.listen("onReady"){ arg ->
 }
 //or
 mWebView.listen("onReady",object:JsCallback<String>{
-     override fun onReceiveValue(ret: String?){
-         //do something
-     }
+     override fun onReceiveValue(ret: String?){
+         //do something
+     }
 })
 
 //解除某一事件的所有监听
@@ -201,13 +199,11 @@ JSBridge.emit("onClick", "hello") //带参
 
 //监听event
 JSBridge.listen("onPause",function(arg){
-     //do something
+     //do something
  })
 ```
 
-native或javascript发送的event只会由对方注册的监听器接收，每一事件可以注册多个listener。
-
-
+native或javascript发送的event只会由对方注册的监听器接收，每一事件可以注册多个listener，每一事件支持一个参数。
 
 ### 调试
 
