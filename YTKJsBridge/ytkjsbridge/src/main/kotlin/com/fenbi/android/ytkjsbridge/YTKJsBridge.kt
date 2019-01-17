@@ -152,23 +152,27 @@ class YTKJsBridge {
         return Proxy.newProxyInstance(proxy.javaClass.classLoader, arrayOf(clazz), proxy) as T
     }
 
-    fun <T> listen(event: String, listener: EventListener<T>) {
+    fun <T> addEventListener(event: String, listener: EventListener<T>) {
         if (listenerMap[event] == null) {
             listenerMap[event] = mutableListOf()
         }
         listenerMap[event]!!.add(listener as EventListener<Any?>)
     }
 
-    fun <T> listen(event: String, call: (T?) -> Unit) {
-        listen(event, object : EventListener<T> {
+    fun <T> addEventListener(event: String, call: (T?) -> Unit) {
+        addEventListener(event, object : EventListener<T> {
             override fun onEvent(arg: T?) {
                 call(arg)
             }
         })
     }
 
-    fun clearEventListener(event: String) {
-        listenerMap[event]?.clear()
+    fun removeEventListeners(event: String?) {
+        if(event != null){
+            listenerMap[event]?.clear()
+        }else{
+            listenerMap.clear()
+        }
     }
 
     fun emit(event: String, arg: Any? = null) {

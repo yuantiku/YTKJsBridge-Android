@@ -11,7 +11,6 @@ import android.widget.Button
 import android.widget.Toast
 import com.fenbi.android.ytkjsbridge.*
 import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
 
 
@@ -74,7 +73,7 @@ class MainActivity : AppCompatActivity() {
                 return 0
             }
         })
-        mWebView.listen<String>("onClick"){
+        mWebView.addEventListener<String>("onClick"){
             Toast.makeText(this@MainActivity, it, Toast.LENGTH_SHORT).show()
         }
     }

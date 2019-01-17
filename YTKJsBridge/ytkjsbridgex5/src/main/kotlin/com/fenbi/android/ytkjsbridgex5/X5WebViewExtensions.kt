@@ -5,7 +5,6 @@ import android.os.Build
 import com.fenbi.android.ytkjsbridge.EventListener
 import com.fenbi.android.ytkjsbridge.JsCallback
 import com.fenbi.android.ytkjsbridge.YTKJsBridge
-import com.fenbi.android.ytkjsbridge.ytkJsBridge
 import com.tencent.smtt.sdk.WebView
 
 /**
@@ -66,18 +65,18 @@ inline fun <reified T> WebView.getJsInterface(): T {
     return ytkJsBridge.getJsInterface()
 }
 
-fun <T> WebView.listen(event: String, listener: EventListener<T>) {
-    ytkJsBridge.listen(event, listener)
+fun <T> WebView.addEventListener(event: String, listener: EventListener<T>) {
+    ytkJsBridge.addEventListener(event, listener)
 }
 
-fun <T> WebView.listen(event: String, call: (T?) -> Unit) {
-    ytkJsBridge.listen(event, call)
+fun <T> WebView.addEventListener(event: String, call: (T?) -> Unit) {
+    ytkJsBridge.addEventListener(event, call)
 }
 
 fun WebView.emit(event: String, arg: Any? = null) {
     ytkJsBridge.emit(event, arg)
 }
 
-fun WebView.clearEventListener(event: String){
-    ytkJsBridge.clearEventListener(event)
+fun WebView.removeEventListeners(event: String?) {
+    ytkJsBridge.removeEventListeners(event)
 }

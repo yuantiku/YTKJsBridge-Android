@@ -176,18 +176,20 @@ mWebView.emit("onPause") //无参
 mWebView.emit("onPause", "hello") //带参
 
 //监听event
-mWebView.listen("onReady"){ arg ->
+mWebView.addEventListener("onReady"){ arg ->
  //do something
 }
 //or
-mWebView.listen("onReady",object:JsCallback<String>{
-     override fun onReceiveValue(ret: String?){
+mWebView.addEventListener("onReady",object:EventListener<String>{
+     override fun onEvent(arg: String?){
          //do something
      }
 })
 
-//解除某一事件的所有监听
-mWebView.clearEventListener("onReady")
+//解除某一事件的监听
+mWebView.removeEventListeners("onReady")
+//解除所有事件监听
+mWebView.removeEventListeners(null)
 ```
 
 #### javascript端
