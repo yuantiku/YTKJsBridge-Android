@@ -1,4 +1,6 @@
-package com.fenbi.android.ytkjsbridge
+package com.fenbi.android.ytkjsbridgex5
+
+import com.fenbi.android.ytkjsbridge.JsCallback
 
 /**
  * Created by yangjw on 2019/1/9.

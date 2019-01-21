@@ -1,9 +1,8 @@
-package com.fenbi.android.ytkjsbridge
+package com.fenbi.android.ytkjsbridgex5
 
 import android.support.test.InstrumentationRegistry
 import android.support.test.runner.AndroidJUnit4
-import com.fenbi.android.ytkjsbridgex5.getJsInterface
-import com.fenbi.android.ytkjsbridgex5.initYTKJsBridge
+import com.fenbi.android.ytkjsbridge.JsCallback
 import com.tencent.smtt.sdk.WebChromeClient
 import com.tencent.smtt.sdk.WebView
 import com.tencent.smtt.sdk.WebViewClient

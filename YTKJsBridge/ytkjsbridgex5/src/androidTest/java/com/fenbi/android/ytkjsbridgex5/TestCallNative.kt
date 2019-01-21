@@ -1,14 +1,11 @@
-package com.fenbi.android.ytkjsbridge
+package com.fenbi.android.ytkjsbridgex5
 
 import android.support.test.InstrumentationRegistry
 import android.support.test.runner.AndroidJUnit4
 import android.webkit.JavascriptInterface
-import com.fenbi.android.ytkjsbridgex5.addYTKJavascriptInterface
-import com.fenbi.android.ytkjsbridgex5.initYTKJsBridge
 import com.tencent.smtt.sdk.WebChromeClient
 import com.tencent.smtt.sdk.WebView
 import com.tencent.smtt.sdk.WebViewClient
-
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
