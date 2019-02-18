@@ -1,47 +1,49 @@
 # YTKJsBridge-Android
 
-一个基于kotlin的javascript bridge
+A  javascript bridge based on new features of kotlin and written with whole kotlin language.
 
-## 特性
+[中文说明](https://github.com/yuantiku/YTKJsBridge-Android/blob/master/README-CHINESE.md)
 
-* 双向调用
-* 同步、异步调用 \*
-* 动态、静态调用
-* 不需要继承定制的WebView，代码侵入性小
-* 支持腾讯x5内核
+## Features
 
-\* Android调用JS仅支持suspend function形式的同步调用
+* two-way function call
+* synchronized、asynchronous* function call
+* dynamic、static function call
+* no need to extends specific WebView, less code intrusion
+* support tencent x5 WebView
 
-## 使用
+*Only support suspend function type synchronized function call when it comes to Android calling Javascript function.
 
-### 初始化
+## Usage
 
-在需要使用YTKJsBridge的h5页面上引入[ytkjsbridge.js](https://github.com/yuantiku/YTKJsBridge-Android/blob/master/YTKJsBridge/ytkjsbridge/ytkjsbridge.js)文件，或者在h5页面上通过url方式引入。
+### Initialization
+
+Import [ytkjsbridge.js](https://github.com/yuantiku/YTKJsBridge-Android/blob/master/YTKJsBridge/ytkjsbridge/ytkjsbridge.js) on pages that work with YTKJsBridge, or you can import jsbridge.js by url:
 
 ```http
-<script type="text/javascript" src="https://conan-online.fbcontent.cn/conan-math/webview.js"></script>
+<script type="text/javascript" src="https://conan-online.fbcontent.cn/conan-math/JSBridge/index.js"></script>
 ```
 
-同时使用YTKJsBridge前要进行初始化`initYTKJsBridge()`,初始化完成后再进行loadUrl等操作。
+Remeber to call `initYTKJsBridge()` before you use YTKJsBridge.
 
 ```java
 mWebView.initYTKJsBridge()    //you should call initYTKJsBridge() before using loadUrl()
 ```
 
-### Android调用JS
+### Android call Javascript function
 
 Javascript:
 
 ```javascript
-//注册 javascript API
+//register javascript API
 JSBridge.bindCall('functionName', function(arg){
     return arg;
 })
 ```
 
-#### 异步调用
+#### asynchronous function call
 
-* 动态
+* dynamic call
 
 ```kotlin
 webView.call("functionName", "arg1") { result: String ->
@@ -49,7 +51,7 @@ webView.call("functionName", "arg1") { result: String ->
 }
 ```
 
-* 静态
+* static static
 
 ```kotlin
 interface JsFunctions {
@@ -66,12 +68,11 @@ js.func1(...) { result ->
 }
 ```
 
-#### 同步调用
+#### synchronized function call
 
-仅支持suspend function的方式，详见
-[kotlin coroutines](https://kotlinlang.org/docs/reference/coroutines-overview.html)
+Only support suspend function, for more details please visit [kotlin coroutines](https://kotlinlang.org/docs/reference/coroutines-overview.html).
 
-* 动态：
+* dyamic call
 
 ```kotlin
 GlobalScope.launch {
@@ -80,9 +81,9 @@ GlobalScope.launch {
 }
 ```
 
-其中WebView.call是一个suspend函数
+The WebView.call here is a suspend function.
 
-* 静态：
+* static call
 
 ```kotlin
 interface JsFunctions {
@@ -96,19 +97,19 @@ GlobalScope.launch {
 }
 ```
 
-### JS调用Android
+### Javascript call Android function
 
-Android端：
+Android：
 
 ```kotlin
 object JsApi {
-    //同步API
+    //synchronized API
     @JavascriptInterface
     fun testSync(msg: String): String {
         return msg + "［syn call］"
     }
 
-    //异步API
+    //asynchronous API
     @JavascriptInterface
     fun testAsync(msg: String, onComplete: JsCallback) {
         // do some work
@@ -119,21 +120,22 @@ object JsApi {
 webView.addYTKJavascriptInterface(JsApi)
 ```
 
-可以添加多个JsApi，并且无需指定注入变量名，在javascript中统一用ytkBridge调用。
+You can add multiple JsApi and don't need to specific the name。
 
 Javascript:
 
 ```javascript
 JSBridge.call(method, args, async)
-//method: 方法名
-//args: 传给客户端的参数，如果有回调请在 args 注入。如：args = { trigger: () => {} }
-//async: 是否异步调用
+//method: method name
+//args: parameters that should be sent to client, and if you need a callback please put the callback here like: args = { trigger: () => {} }
+//async: if it's a asynchronous function call
 ```
 
 #### namespace
 
-`addYTKJavascriptInterface`可指定一个namespace参数，用于添加多个JsApi对象时的方
-法重名问题。例如
+When calling `addYTKJavascriptInterface` you can assign a namespace which is useful when there're methods with the same name in different JsApi.
+
+Android:
 
 ```kotlin
 object JsApi1 {
@@ -155,27 +157,26 @@ webView.addYTKJavascriptInterface(JsApi1, "api1" /*namespace*/)
 webView.addYTKJavascriptInterface(JsApi2, "api2")
 ```
 
-前端调用时用
+Javascript:
 
 ```javascript
 var str = JSBridge.call("api1.testFunc", {"some msg"});
 ```
 
-如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
-的方法时会调用最后一个被添加的对象中的方法。
+If a WebView has called `addYTKJavascriptInterface`  mutiple times without assigning namespace, the method in the JsApi that is added at last will be invoked when javascript calling a method that exists in more than one JsApi.
 
-### 事件机制
+### Event transmission
 
-除了native与javascript的双向方法调用外，YTKJsBridge还提供一套供双方互相发送以及监听事件的机制。
+Besides two-way function call, YTKJsBridge also offer you a way to send&listen events between Android and Javasctipt.
 
-#### native端
+Android:
 
 ```kotlin
-//发送event
-mWebView.emit("onPause") //无参
-mWebView.emit("onPause", "hello") //带参
+//send event
+mWebView.emit("onPause") //no parameter
+mWebView.emit("onPause", "hello") //with parameter
 
-//监听event
+//liste event
 mWebView.addEventListener("onReady"){ arg ->
  //do something
 }
@@ -186,27 +187,27 @@ mWebView.addEventListener("onReady",object:EventListener<String>{
      }
 })
 
-//解除某一事件的监听
+//remove listeners on "onReady" event
 mWebView.removeEventListeners("onReady")
-//解除所有事件监听
+//remove all listeners
 mWebView.removeEventListeners(null)
 ```
 
-#### javascript端
+Javascript:
 
 ```javascript
-//发送event
-JSBridge.emit("onReady") //无参
-JSBridge.emit("onClick", "hello") //带参
+//send event
+JSBridge.emit("onReady") //no parameter
+JSBridge.emit("onClick", "hello") //with parameter
 
-//监听event
+//listen event
 JSBridge.listen("onPause",function(arg){
      //do something
  })
 ```
 
-native或javascript发送的event只会由对方注册的监听器接收，每一事件可以注册多个listener，每一事件支持一个参数。
+Each event can be observed by mutiple listeners and each event support at most one parameter.
 
-### 调试
+### Debug
 
-debug环境下默认启用调试模式，可以通过`WebView.debugMode=false`手动关闭，请使用“YTKJsBridge”作为TAG过滤日志。此外调试模式下客户端YTKJsBridge的内部异常会在WebView中以弹窗形式显示出来。
+Debug mode is enabled by default when building debug package, you can disable it by calling `WebView.debugMode=false`. Please usage "YTKJsBridge" as TAG to filter logs. Any exception caused by YTKJsBridge will be posted on a dialog in WebView when debug mode is enabled.
