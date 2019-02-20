@@ -9,7 +9,8 @@ import com.tencent.smtt.sdk.WebViewClient
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Created by yangjw on 2019/1/9.
@@ -25,18 +26,21 @@ class TestCallNative {
 
     @Test
     fun testCallNative() {
-        val future = CompletableFuture<String>()
+        val countDownLatch = CountDownLatch(1)
+        var ret: String? = ""
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             val webView = initWebView()
             webView.addYTKJavascriptInterface(object {
                 @JavascriptInterface
                 fun testNative(msg: String?) {
-                    future.complete(msg)
+                    ret = msg
+                    countDownLatch.countDown()
                 }
             })
             webView.loadUrl("file:///android_asset/test-call-native.html")
         }
-        assertEquals("hello world", future.get())
+        countDownLatch.await(60, TimeUnit.SECONDS)
+        assertEquals("hello world", ret)
     }
 
 }

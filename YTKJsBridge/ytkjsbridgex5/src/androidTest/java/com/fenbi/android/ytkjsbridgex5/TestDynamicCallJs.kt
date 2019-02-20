@@ -12,7 +12,8 @@ import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import org.junit.runner.RunWith
-import java.util.concurrent.CompletableFuture
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 
 /**
  * Created by yangjw on 2019/1/9.
@@ -29,47 +30,55 @@ class TestDynamicCallJs {
 
     @Test
     fun testCallSync() {
-        val future: CompletableFuture<Int> = CompletableFuture()
+        val countDownLatch = CountDownLatch(1)
+        var ret: Int? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             val webView = initWebView()
             GlobalScope.launch {
                 delay(5000)         //wait js script to be load
-                val sum = webView.call<Int>("testSync", 1, 2)
-                future.complete(sum)
+                ret = webView.call<Int>("testSync", 1, 2)
+                countDownLatch.countDown()
             }
         }
-        assertEquals(3, future.get())
+        countDownLatch.await(60, TimeUnit.SECONDS)
+        assertEquals(3, ret)
     }
 
     @Test
     fun testCallAsyncWithJsCall() {
-        val future: CompletableFuture<String> = CompletableFuture()
+        val countDownLatch = CountDownLatch(1)
+        var ret: String? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             val webView = initWebView()
             GlobalScope.launch {
                 delay(5000)
                 webView.call("testAsyncWithJsCall", "tom", callback = object : JsCallback<String> {
-                    override fun onReceiveValue(ret: String?) {
-                       future.complete(ret)
+                    override fun onReceiveValue(msg: String?) {
+                        ret = msg
+                        countDownLatch.countDown()
                     }
                 })
             }
         }
-        assertEquals("hello tom", future.get())
+        countDownLatch.await(60, TimeUnit.SECONDS)
+        assertEquals("hello tom", ret)
     }
 
     @Test
     fun testCallAsyncWithLambda() {
-        val future: CompletableFuture<String> = CompletableFuture()
+        val countDownLatch = CountDownLatch(1)
+        var ret: String? = null
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             val webView = initWebView()
             GlobalScope.launch {
                 delay(5000)
                 webView.call<String>("testAsyncWithLambda","lisa"){
-                    future.complete(it)
+                    ret = it
+                    countDownLatch.countDown()
                 }
             }
         }
-        assertEquals("hello lisa", future.get())
+        countDownLatch.await(60, TimeUnit.SECONDS)
+        assertEquals("hello lisa", ret)
     }
 }
