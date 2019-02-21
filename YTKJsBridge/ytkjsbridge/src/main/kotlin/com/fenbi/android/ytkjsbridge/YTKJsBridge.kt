@@ -168,9 +168,9 @@ class YTKJsBridge {
     }
 
     fun removeEventListeners(event: String?) {
-        if(event != null){
+        if (event != null) {
             listenerMap[event]?.clear()
-        }else{
+        } else {
             listenerMap.clear()
         }
     }
@@ -236,47 +236,28 @@ class YTKJsBridge {
                 jsonObject.put("message", msg)
                 return jsonObject.toString()
             }
+            var method: Method? = tryGetMethod(obj, methodName, param, Function1::class.java)
+            val isLambda = method != null
             var isAsync = false
-            var isLambda = false
-            var method: Method? = null
-            try {
-                val paramTypes = if (param.isNull)
-                    arrayOf(Function1::class.java)
-                else
-                    arrayOf(param!!::class.java, Function1::class.java)
-                method = obj.javaClass.getMethod(methodName, *paramTypes)
-                isLambda = true
-            } catch (e: Exception) {
-
+            if (method == null) {
+                method = tryGetMethod(obj, methodName, param, JsCallback::class.java)
+                isAsync = method != null
             }
             if (method == null) {
-                try {
-                    val paramTypes = if (param.isNull)
-                        arrayOf(JsCallback::class.java)
-                    else
-                        arrayOf(param!!::class.java, JsCallback::class.java)
-                    method = obj.javaClass.getMethod(methodName, *paramTypes)
-                    isAsync = true
-                } catch (e: Exception) {
-
-                }
-            }
-            if (method == null) {
-                try {
-                    val paramTypes = if (param.isNull)
-                        emptyArray()
-                    else
-                        arrayOf(param!!::class.java)
-                    method = obj.javaClass.getMethod(methodName, *paramTypes)
-                } catch (e: Exception) {
-
-                }
+                method = tryGetMethod(obj, methodName, param, null)
             }
             if (method == null) {
                 val msg = "native method:$namespace not found."
                 logError(msg)
                 jsonObject.put("message", msg)
                 return jsonObject.toString()
+            }
+            val realParam = when {
+                param.isNull -> emptyArray()
+                param is JSONArray -> {
+                    Array<Any>(param.length()) { param[it] }
+                }
+                else -> arrayOf(param)
             }
             when {
                 isLambda -> {
@@ -292,11 +273,7 @@ class YTKJsBridge {
                         jsObj.put("callId", callId)
                         makeJsCallback(jsObj)
                     }
-                    if (param.isNull) {
-                        method.invoke(obj, callback)
-                    } else {
-                        method.invoke(obj, param, callback)
-                    }
+                    method.invoke(obj, *realParam, callback)
                     jsonObject.put("code", 0)
                     return jsonObject.toString()
                 }
@@ -315,20 +292,12 @@ class YTKJsBridge {
                             makeJsCallback(jsObj)
                         }
                     }
-                    if (param.isNull) {
-                        method.invoke(obj, callback)
-                    } else {
-                        method.invoke(obj, param, callback)
-                    }
+                    method.invoke(obj, *realParam, callback)
                     jsonObject.put("code", 0)
                     return jsonObject.toString()
                 }
                 else -> {
-                    val ret = if (param.isNull) {
-                        method.invoke(obj)
-                    } else {
-                        method.invoke(obj, param)
-                    }
+                    val ret = method.invoke(obj, *realParam)
                     jsonObject.put("ret", ret)
                     jsonObject.put("code", 0)
                     return jsonObject.toString()
@@ -342,6 +311,29 @@ class YTKJsBridge {
         }
         return jsonObject.toString()
     }
+
+    private fun tryGetMethod(obj: Any, methodName: String, param: Any?, callback: Class<*>?): Method? {
+        val paramTypes = when {
+            param.isNull -> if (callback.isNull) emptyArray() else arrayOf(callback!!)
+            param is JSONArray ->
+                if (callback.isNull) {
+                    Array<Class<*>>(param.length()) { param[it]::class.java }
+                } else {
+                    val paramsList = MutableList(param.length()) { param[it]::class.java }
+                    paramsList.add(callback!!)
+                    paramsList.toTypedArray()
+                }
+            else -> if (callback.isNull) arrayOf(param!!::class.java) else arrayOf(param!!::class.java, callback!!)
+        }
+        var method: Method? = null
+        try {
+            method = obj.javaClass.getMethod(methodName, *paramTypes)
+        } catch (e: Exception) {
+
+        }
+        return method
+    }
+
 
     private fun dispatchJsCallback(callId: Long, ret: Any?) {
         uiThread {

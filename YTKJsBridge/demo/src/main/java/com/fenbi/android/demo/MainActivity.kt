@@ -65,9 +65,9 @@ class MainActivity : AppCompatActivity() {
             }
 
             @JavascriptInterface
-            fun toastAsync(msg: String?, callback: JsCallback<Int>): Int {
+            fun toastAsync(msg: String?, msg2: Int?, callback: JsCallback<Int>): Int {
                 runOnUiThread {
-                    Toast.makeText(this@MainActivity, "toastAsync call with param: $msg", Toast.LENGTH_SHORT).show()
+                    Toast.makeText(this@MainActivity, "toastAsync call with param: $msg $msg2", Toast.LENGTH_SHORT).show()
                 }
                 callback.onReceiveValue(233)
                 return 0

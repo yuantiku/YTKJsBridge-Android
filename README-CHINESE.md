@@ -104,15 +104,15 @@ Android端：
 object JsApi {
     //同步API
     @JavascriptInterface
-    fun testSync(msg: String): String {
-        return msg + "［syn call］"
+    fun testSync(msg1: String, msg2: String): String {
+        return "$msg1 $msg2［syn call］"
     }
 
     //异步API
     @JavascriptInterface
-    fun testAsync(msg: String, onComplete: JsCallback) {
+    fun testAsync(msg1: String, msg2:String, onComplete: JsCallback) {
         // do some work
-        onComplete.onReceiveValue(msg+" [ asyn call]")
+        onComplete.onReceiveValue("$msg1 $msg2 [ asyn call]")
     }
 }
 
