@@ -16,6 +16,7 @@ import java.util.concurrent.atomic.AtomicLong
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.intrinsics.COROUTINE_SUSPENDED
 import kotlin.coroutines.resume
+import kotlin.reflect.KClass
 
 /**
  * Created by yangjw on 2019/1/2.
@@ -236,11 +237,11 @@ class YTKJsBridge {
                 jsonObject.put("message", msg)
                 return jsonObject.toString()
             }
-            var method: Method? = tryGetMethod(obj, methodName, param, Function1::class.java)
+            var method: Method? = tryGetMethod(obj, methodName, param, Function1::class)
             val isLambda = method != null
             var isAsync = false
             if (method == null) {
-                method = tryGetMethod(obj, methodName, param, JsCallback::class.java)
+                method = tryGetMethod(obj, methodName, param, JsCallback::class)
                 isAsync = method != null
             }
             if (method == null) {
@@ -312,22 +313,33 @@ class YTKJsBridge {
         return jsonObject.toString()
     }
 
-    private fun tryGetMethod(obj: Any, methodName: String, param: Any?, callback: Class<*>?): Method? {
-        val paramTypes = when {
+    private fun tryGetMethod(obj: Any, methodName: String, param: Any?, callback: KClass<*>?): Method? {
+        val paramKotlinTypes = when {
             param.isNull -> if (callback.isNull) emptyArray() else arrayOf(callback!!)
             param is JSONArray ->
                 if (callback.isNull) {
-                    Array<Class<*>>(param.length()) { param[it]::class.java }
+                    Array<KClass<*>>(param.length()) { param[it]::class }
                 } else {
-                    val paramsList = MutableList(param.length()) { param[it]::class.java }
+                    val paramsList = MutableList(param.length()) { param[it]::class }
                     paramsList.add(callback!!)
                     paramsList.toTypedArray()
                 }
-            else -> if (callback.isNull) arrayOf(param!!::class.java) else arrayOf(param!!::class.java, callback!!)
+            else -> if (callback.isNull) arrayOf(param!!::class) else arrayOf(
+                param!!::class,
+                callback!!
+            )
         }
+        //convert java wrapper class to simple java primitive class, eg: java.lang.Double -> double
+        val primitiveType = setOf(
+            Long::class, Double::class, Float::class, Int::class,
+            Short::class, Char::class, Byte::class, Boolean::class
+        )
+        val paramJavaTypes = paramKotlinTypes.map {
+            if (it in primitiveType) it.javaPrimitiveType else it.java
+        }.toTypedArray()
         var method: Method? = null
         try {
-            method = obj.javaClass.getMethod(methodName, *paramTypes)
+            method = obj.javaClass.getMethod(methodName, *paramJavaTypes)
         } catch (e: Exception) {
 
         }
