@@ -163,6 +163,8 @@ Javascript:
 var str = JSBridge.call("api1.testFunc", {"some msg"});
 ```
 
+Same name method in one object is not allowed.
+
 If a WebView has called `addYTKJavascriptInterface`  mutiple times without assigning namespace, the method in the JsApi that is added at last will be invoked when javascript calling a method that exists in more than one JsApi.
 
 ### Event transmission

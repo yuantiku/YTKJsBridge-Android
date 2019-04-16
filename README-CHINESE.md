@@ -161,6 +161,8 @@ webView.addYTKJavascriptInterface(JsApi2, "api2")
 var str = JSBridge.call("api1.testFunc", {"some msg"});
 ```
 
+注入的同一个对象中不可以有同名方法。
+
 如果一个WebView同时添加了`JsApi1`和`JsApi2`，并且不指定namespace，前端在调用重名
 的方法时会调用最后一个被添加的对象中的方法。
 

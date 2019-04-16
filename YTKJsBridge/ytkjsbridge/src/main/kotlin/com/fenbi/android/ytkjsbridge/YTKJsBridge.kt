@@ -28,7 +28,7 @@ class YTKJsBridge {
     private val callId by lazy { AtomicLong() }
     private val callMap by lazy { mutableMapOf<Long, JsCallback<Any>?>() }
     private val interfaceMap by lazy { mutableMapOf<String, Any>() }
-    private val methodMap by lazy { mutableMapOf<String, Any>() }
+    private val methodMap by lazy { mutableMapOf<String, Method>() }
     private val listenerMap by lazy { mutableMapOf<String, MutableList<EventListener<Any?>>>() }
     private val handler = Handler(Looper.getMainLooper())
     var debugMode = BuildConfig.DEBUG
@@ -96,7 +96,7 @@ class YTKJsBridge {
             .forEach {
                 val prefix = if (namespace.isNotEmpty()) "$namespace." else namespace
                 interfaceMap[prefix + it.name] = obj
-                methodMap[it.name] = obj
+                methodMap[prefix + it.name] = it
             }
     }
 
@@ -228,24 +228,13 @@ class YTKJsBridge {
             jsonObject.put("message", "")
             jsonObject.put("code", -1)
 
-            val obj = if (namespace.contains(".")) interfaceMap[namespace] else methodMap[namespace]
-            val index = namespace.indexOfLast { it == '.' }
-            val methodName = namespace.substring(if (index < 0) 0 else index + 1)
+            val obj = interfaceMap[namespace]
+            val method = methodMap[namespace]
             if (obj == null) {
                 val msg = "native YTKJavascriptInterface for $namespace not found."
                 logError(msg)
                 jsonObject.put("message", msg)
                 return jsonObject.toString()
-            }
-            var method: Method? = tryGetMethod(obj, methodName, param, Function1::class)
-            val isLambda = method != null
-            var isAsync = false
-            if (method == null) {
-                method = tryGetMethod(obj, methodName, param, JsCallback::class)
-                isAsync = method != null
-            }
-            if (method == null) {
-                method = tryGetMethod(obj, methodName, param, null)
             }
             if (method == null) {
                 val msg = "native method:$namespace not found."
@@ -260,6 +249,9 @@ class YTKJsBridge {
                 }
                 else -> arrayOf(param)
             }
+            val lastParam = method.parameterTypes.lastOrNull()
+            val isLambda = lastParam != null && Function1::class.java.isAssignableFrom(lastParam)
+            val isAsync = lastParam != null && JsCallback::class.java.isAssignableFrom(lastParam)
             when {
                 isLambda -> {
                     val callback = { ret: Any ->
@@ -312,40 +304,6 @@ class YTKJsBridge {
         }
         return jsonObject.toString()
     }
-
-    private fun tryGetMethod(obj: Any, methodName: String, param: Any?, callback: KClass<*>?): Method? {
-        val paramKotlinTypes = when {
-            param.isNull -> if (callback.isNull) emptyArray() else arrayOf(callback!!)
-            param is JSONArray ->
-                if (callback.isNull) {
-                    Array<KClass<*>>(param.length()) { param[it]::class }
-                } else {
-                    val paramsList = MutableList(param.length()) { param[it]::class }
-                    paramsList.add(callback!!)
-                    paramsList.toTypedArray()
-                }
-            else -> if (callback.isNull) arrayOf(param!!::class) else arrayOf(
-                param!!::class,
-                callback!!
-            )
-        }
-        //convert java wrapper class to simple java primitive class, eg: java.lang.Double -> double
-        val primitiveType = setOf(
-            Long::class, Double::class, Float::class, Int::class,
-            Short::class, Char::class, Byte::class, Boolean::class
-        )
-        val paramJavaTypes = paramKotlinTypes.map {
-            if (it in primitiveType) it.javaPrimitiveType else it.java
-        }.toTypedArray()
-        var method: Method? = null
-        try {
-            method = obj.javaClass.getMethod(methodName, *paramJavaTypes)
-        } catch (e: Exception) {
-
-        }
-        return method
-    }
-
 
     private fun dispatchJsCallback(callId: Long, ret: Any?) {
         uiThread {
