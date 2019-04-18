@@ -245,7 +245,14 @@ class YTKJsBridge {
             val realParam = when {
                 param.isNull -> emptyArray()
                 param is JSONArray -> {
-                    Array<Any>(param.length()) { param[it] }
+                    Array(param.length()) {
+                        val obj = param[it]
+                        if (obj == JSONObject.NULL) {
+                            null
+                        } else {
+                            obj
+                        }
+                    }
                 }
                 else -> arrayOf(param)
             }
