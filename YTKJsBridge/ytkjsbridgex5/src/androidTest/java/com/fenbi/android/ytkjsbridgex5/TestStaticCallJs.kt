@@ -23,7 +23,7 @@ class TestStaticCallJs {
 
 
     private val webView: WebView by lazy {
-        WebView(InstrumentationRegistry.getTargetContext()).apply {
+        WebView(InstrumentationRegistry.getInstrumentation().targetContext).apply {
             webViewClient = WebViewClient()
             webChromeClient = WebChromeClient()
             initYTKJsBridge()
