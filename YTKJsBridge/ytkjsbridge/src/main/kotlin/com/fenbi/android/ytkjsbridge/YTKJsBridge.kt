@@ -2,7 +2,7 @@ package com.fenbi.android.ytkjsbridge
 
 import android.os.Handler
 import android.os.Looper
-import android.support.annotation.Keep
+import androidx.annotation.Keep
 import android.util.Log
 import android.webkit.JavascriptInterface
 import kotlinx.coroutines.suspendCancellableCoroutine
