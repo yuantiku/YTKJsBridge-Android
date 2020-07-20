@@ -21,7 +21,7 @@ import java.util.concurrent.TimeUnit
 @RunWith(AndroidJUnit4::class)
 class TestDynamicCallJs {
 
-    private fun initWebView() = WebView(InstrumentationRegistry.getTargetContext()).apply {
+    private fun initWebView() = WebView(InstrumentationRegistry.getInstrumentation().targetContext).apply {
         webViewClient = WebViewClient()
         webChromeClient = WebChromeClient()
         initYTKJsBridge()
