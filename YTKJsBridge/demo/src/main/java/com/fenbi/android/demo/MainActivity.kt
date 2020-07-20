@@ -1,8 +1,8 @@
 package com.fenbi.android.demo
 
 import android.os.Bundle
-import android.support.annotation.Keep
-import android.support.v7.app.AppCompatActivity
+import androidx.annotation.Keep
+import androidx.appcompat.app.AppCompatActivity
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebView

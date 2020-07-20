@@ -1,6 +1,6 @@
 package com.fenbi.android.demo
 
-import android.support.annotation.Keep
+import androidx.annotation.Keep
 import com.fenbi.android.ytkjsbridge.JsCallback
 
 /**
