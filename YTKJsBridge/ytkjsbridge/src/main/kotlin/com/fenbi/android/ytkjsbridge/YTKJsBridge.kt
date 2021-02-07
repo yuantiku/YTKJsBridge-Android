@@ -234,12 +234,20 @@ class YTKJsBridge {
                 val msg = "native YTKJavascriptInterface for $namespace not found."
                 logError(msg)
                 jsonObject.put("message", msg)
+                if (callId != -1L) {
+                    jsonObject.put("callId", callId)
+                    makeJsCallback(jsonObject)
+                }
                 return jsonObject.toString()
             }
             if (method == null) {
                 val msg = "native method:$namespace not found."
                 logError(msg)
                 jsonObject.put("message", msg)
+                if (callId != -1L) {
+                    jsonObject.put("callId", callId)
+                    makeJsCallback(jsonObject)
+                }
                 return jsonObject.toString()
             }
             val realParam = when {
