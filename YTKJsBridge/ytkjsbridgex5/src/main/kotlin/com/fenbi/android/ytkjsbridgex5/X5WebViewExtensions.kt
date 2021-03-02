@@ -6,6 +6,7 @@ import com.fenbi.android.ytkjsbridge.EventListener
 import com.fenbi.android.ytkjsbridge.JsCallback
 import com.fenbi.android.ytkjsbridge.YTKJsBridge
 import com.tencent.smtt.sdk.WebView
+import org.json.JSONArray
 
 /**
  * @author zheng on 1/4/19
@@ -73,8 +74,12 @@ fun <T> WebView.addEventListener(event: String, call: (T?) -> Unit) {
     ytkJsBridge.addEventListener(event, call)
 }
 
-fun WebView.emit(event: String, arg: Any? = null) {
+fun WebView.emit(event: String, arg: JSONArray) {
     ytkJsBridge.emit(event, arg)
+}
+
+fun WebView.emit(event: String, vararg arg: Any?) {
+    ytkJsBridge.emit(event, *arg)
 }
 
 fun WebView.removeEventListeners(event: String?) {

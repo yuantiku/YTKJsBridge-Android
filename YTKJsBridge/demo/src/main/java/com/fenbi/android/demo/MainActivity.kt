@@ -53,7 +53,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
         mCallJsBt4.setOnClickListener {
-            mWebView.emit("onClick", "emit from bt4")
+            mWebView.emit("onClick", "emit from bt4", 123)
         }
         mWebView.addYTKJavascriptInterface(@Keep object {
             @JavascriptInterface

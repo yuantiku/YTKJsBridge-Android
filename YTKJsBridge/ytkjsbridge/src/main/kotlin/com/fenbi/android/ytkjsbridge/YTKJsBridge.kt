@@ -176,8 +176,17 @@ class YTKJsBridge {
         }
     }
 
-    fun emit(event: String, arg: Any? = null) {
+    fun emit(event: String, arg: JSONArray) {
         emitInner(Event(event, arg))
+    }
+
+    fun emit(event: String, vararg arg: Any?) {
+        val jsonArray = JSONArray().apply {
+            arg.forEach {
+                put(it)
+            }
+        }
+        emitInner(Event(event, jsonArray))
     }
 
     fun callWithCallback(method: Method, args: Array<Any?>?) {
@@ -366,7 +375,7 @@ class YTKJsBridge {
         }
     }
 
-    private class Event(val eventName: String, val arg: Any?) {
+    private class Event(val eventName: String, val arg: JSONArray) {
         override fun toString(): String {
             val jsonObject = JSONObject()
             try {
